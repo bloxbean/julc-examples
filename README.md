@@ -1,6 +1,6 @@
 # julc-examples
 
-Example repository for [JuLC](https://github.com/bloxbean/julc) (Java UPLC Compiler) — Cardano smart contract validators written in Java, with off-chain demos and unit tests.
+Example repository for [JuLC](https://github.com/bloxbean/julc) - Validators, with off-chain demos and unit tests.
 
 ## Prerequisites
 

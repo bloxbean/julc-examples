@@ -1,4 +1,4 @@
-# julc-examples
+# JuLC-examples
 
 Example repository for [JuLC](https://github.com/bloxbean/julc) - Validators, with off-chain demos and unit tests.
 

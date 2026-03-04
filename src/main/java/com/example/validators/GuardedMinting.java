@@ -2,9 +2,9 @@ package com.example.validators;
 
 import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
 import com.bloxbean.cardano.julc.stdlib.annotation.MintingValidator;
+import com.bloxbean.cardano.julc.stdlib.Builtins;
 import com.bloxbean.cardano.julc.ledger.ScriptContext;
 import com.bloxbean.cardano.julc.ledger.TxInfo;
-import com.bloxbean.cardano.julc.ledger.PubKeyHash;
 import com.bloxbean.cardano.julc.core.PlutusData;
 
 /**
@@ -16,8 +16,7 @@ import com.bloxbean.cardano.julc.core.PlutusData;
  * Features demonstrated:
  * - @MintingPolicy annotation (no datum)
  * - Typed ScriptContext access
- * - Signer check via txInfo.signatories().contains()
- * - Chained method calls
+ * - Signer check via signatories().any() with .hash().equals()
  */
 @MintingValidator
 public class GuardedMinting {
@@ -25,7 +24,7 @@ public class GuardedMinting {
     @Entrypoint
     public static boolean validate(PlutusData redeemer, ScriptContext ctx) {
         TxInfo txInfo = ctx.txInfo();
-        var sigs = txInfo.signatories();
-        return sigs.contains((PubKeyHash)(Object)redeemer);
+        byte[] pkh = (byte[])(Object) Builtins.unBData(redeemer);
+        return txInfo.signatories().any(sig -> sig.hash().equals(pkh));
     }
 }

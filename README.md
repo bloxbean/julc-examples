@@ -14,12 +14,18 @@ Example repository for [JuLC](https://github.com/bloxbean/julc) - Validators, wi
 src/main/java/com/example/
 ├── validators/          # On-chain validators and minting policies
 ├── offchain/            # Off-chain demo programs (transaction building)
+├── swap/                # DEX swap order (on-chain + off-chain + README)
+├── lending/             # Collateral loan (on-chain + off-chain + README)
+├── nft/                 # CIP-68 NFT (on-chain + off-chain + README)
 ├── benchmark/           # WingRiders DEX benchmark validators
 ├── mpf/                 # Merkle-Patricia Forestry types
 └── util/                # Utility classes
 
 src/test/java/com/example/
 ├── validators/          # Unit tests for validators
+├── swap/                # SwapOrder tests (Direct Java + UPLC + JulcEval proxy)
+├── lending/             # CollateralLoan tests (Direct Java + UPLC + JulcEval proxy)
+├── nft/                 # Cip68Nft tests (UPLC + JulcEval proxy)
 ├── benchmark/           # Benchmark tests
 └── mpf/                 # MPF tests
 ```
@@ -63,4 +69,7 @@ Off-chain demos require a running [Yaci Devkit](https://github.com/bloxbean/yaci
 | MPF Registry | `com.example.offchain.MpfRegistryDemo` |
 | Token Distribution | `com.example.offchain.TokenDistributionDemo` |
 | Whitelist Treasury | `com.example.offchain.WhitelistTreasuryDemo` |
+| Swap Order | `com.example.swap.offchain.SwapOrderDemo` |
+| Collateral Loan | `com.example.lending.offchain.CollateralLoanDemo` |
+| CIP-68 NFT | `com.example.nft.offchain.Cip68NftDemo` |
 

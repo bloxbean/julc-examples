@@ -93,10 +93,11 @@ public class VestingDemo {
                 .data(ListPlutusData.of(nestdRedeemer))
                 .build();
 
+        // Validator requires exactly 2 outputs, one with 5 ADA
+        // Change output to feePayer (beneficiary) is the 2nd output
         var unlockTx = new ScriptTx()
                 .collectFrom(scriptUtxo, redeemer)
-                .payToAddress(beneficiaryAddr, Amount.ada(2))
-                .payToAddress(new Account(Networks.testnet()).baseAddress(), Amount.ada(5)) // pay fee to another account
+                .payToAddress(new Account(Networks.testnet()).baseAddress(), Amount.ada(5))
                 .attachSpendingValidator(script);
 
         var unlockResult = quickTx.compose(unlockTx)

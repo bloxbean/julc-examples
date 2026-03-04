@@ -17,6 +17,7 @@ src/main/java/com/example/
 ├── swap/                # DEX swap order (on-chain + off-chain + README)
 ├── lending/             # Collateral loan (on-chain + off-chain + README)
 ├── nft/                 # CIP-68 NFT (on-chain + off-chain + README)
+├── uverify/             # UVerify document verification (on-chain + off-chain + tests)
 ├── benchmark/           # WingRiders DEX benchmark validators
 ├── mpf/                 # Merkle-Patricia Forestry types
 └── util/                # Utility classes
@@ -26,6 +27,7 @@ src/test/java/com/example/
 ├── swap/                # SwapOrder tests (Direct Java + UPLC + JulcEval proxy)
 ├── lending/             # CollateralLoan tests (Direct Java + UPLC + JulcEval proxy)
 ├── nft/                 # Cip68Nft tests (UPLC + JulcEval proxy)
+├── uverify/             # UVerify tests (Proxy + V1 + FeePot)
 ├── benchmark/           # Benchmark tests
 └── mpf/                 # MPF tests
 ```
@@ -72,4 +74,5 @@ Off-chain demos require a running [Yaci Devkit](https://github.com/bloxbean/yaci
 | Swap Order | `com.example.swap.offchain.SwapOrderDemo` |
 | Collateral Loan | `com.example.lending.offchain.CollateralLoanDemo` |
 | CIP-68 NFT | `com.example.nft.offchain.Cip68NftDemo` |
+| UVerify (Proxy + V1) | `com.example.uverify.offchain.UVerifyDemo` |
 

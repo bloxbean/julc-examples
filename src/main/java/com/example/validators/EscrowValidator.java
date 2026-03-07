@@ -17,6 +17,19 @@ public class EscrowValidator {
 
     record EscrowRedeemer(BigInteger action) {}
 
+    @Entrypoint
+    public static boolean validate(EscrowDatum datum, EscrowRedeemer redeemer, ScriptContext ctx) {
+        TxInfo txInfo = ctx.txInfo();
+        ContextsLib.trace("Escrow validate");
+        if (redeemer.action().compareTo(BigInteger.ZERO) == 0) {
+            ContextsLib.trace("Complete path");
+            return checkComplete(txInfo, datum);
+        } else {
+            ContextsLib.trace("Refund path");
+            return checkRefund(txInfo, datum);
+        }
+    }
+
     static boolean checkComplete(TxInfo txInfo, EscrowDatum datum) {
         boolean buyerSigned = ValidationUtils.hasSigner(txInfo, datum.buyer());
         boolean sellerSigned = ValidationUtils.hasSigner(txInfo, datum.seller());
@@ -33,18 +46,5 @@ public class EscrowValidator {
         boolean sellerSigned = ValidationUtils.hasSigner(txInfo, datum.seller());
         boolean pastDeadline = ValidationUtils.isAfterDeadline(txInfo, datum.deadline());
         return sellerSigned && pastDeadline;
-    }
-
-    @Entrypoint
-    public static boolean validate(EscrowDatum datum, EscrowRedeemer redeemer, ScriptContext ctx) {
-        TxInfo txInfo = ctx.txInfo();
-        ContextsLib.trace("Escrow validate");
-        if (redeemer.action().compareTo(BigInteger.ZERO) == 0) {
-            ContextsLib.trace("Complete path");
-            return checkComplete(txInfo, datum);
-        } else {
-            ContextsLib.trace("Refund path");
-            return checkRefund(txInfo, datum);
-        }
     }
 }

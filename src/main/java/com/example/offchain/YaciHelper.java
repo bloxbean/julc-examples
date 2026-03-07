@@ -138,7 +138,16 @@ public final class YaciHelper {
                     .GET()
                     .build();
             var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            return response.statusCode() < 500;
+
+            //Check admin API as well
+            var adminRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(YACI_ADMIN_URL))
+                    .timeout(java.time.Duration.ofSeconds(5))
+                    .GET()
+                    .build();
+            var adminResponse = client.send(adminRequest, HttpResponse.BodyHandlers.ofString());
+
+            return response.statusCode() < 500 && adminResponse.statusCode() < 500;
         } catch (Exception e) {
             return false;
         }

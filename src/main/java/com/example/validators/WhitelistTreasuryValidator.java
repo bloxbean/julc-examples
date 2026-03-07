@@ -45,7 +45,25 @@ public class WhitelistTreasuryValidator {
      */
     record UpdateWhitelist() implements TreasuryAction {}
 
-    // ---- Helper methods ----
+    @Entrypoint
+    public static boolean validate(WhitelistDatum datum, TreasuryAction redeemer,
+                                    ScriptContext ctx) {
+        TxInfo txInfo = ctx.txInfo();
+        var signatories = txInfo.signatories();
+
+        return switch (redeemer) {
+            case Withdraw w -> {
+                ContextsLib.trace("Withdraw: checking threshold signatures");
+                long matchCount = countMatchingSigners(
+                        datum.authorizedSigners(), signatories);
+                yield matchCount >= datum.threshold();
+            }
+            case UpdateWhitelist u -> {
+                ContextsLib.trace("UpdateWhitelist: all signers must approve");
+                yield allWhitelistedSigned(datum.authorizedSigners(), signatories);
+            }
+        };
+    }
 
     /**
      * Count how many whitelisted signers are present in the transaction signatories.
@@ -85,25 +103,5 @@ public class WhitelistTreasuryValidator {
                 signatories.any(sig -> Builtins.equalsByteString(
                         (byte[])(Object) w.hash(), (byte[])(Object) sig.hash()))
         );
-    }
-
-    @Entrypoint
-    public static boolean validate(WhitelistDatum datum, TreasuryAction redeemer,
-                                    ScriptContext ctx) {
-        TxInfo txInfo = ctx.txInfo();
-        var signatories = txInfo.signatories();
-
-        return switch (redeemer) {
-            case Withdraw w -> {
-                ContextsLib.trace("Withdraw: checking threshold signatures");
-                long matchCount = countMatchingSigners(
-                        datum.authorizedSigners(), signatories);
-                yield matchCount >= datum.threshold();
-            }
-            case UpdateWhitelist u -> {
-                ContextsLib.trace("UpdateWhitelist: all signers must approve");
-                yield allWhitelistedSigned(datum.authorizedSigners(), signatories);
-            }
-        };
     }
 }

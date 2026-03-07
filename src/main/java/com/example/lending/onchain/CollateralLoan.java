@@ -50,24 +50,16 @@ public class CollateralLoan {
     public record RepayLoan() implements LoanAction {}
     public record Liquidate() implements LoanAction {}
 
-    static BigInteger calculateInterest(BigInteger principal) {
-        return principal.multiply(interestRateBps).divide(BigInteger.valueOf(10000));
-    }
-
-    static BigInteger totalRepayment(BigInteger principal) {
-        return principal.add(calculateInterest(principal));
-    }
-
-    static boolean hasEnoughCollateral(BigInteger collateral, BigInteger principal) {
-        // collateral * 10000 >= principal * liquidationThresholdBps
-        return collateral.multiply(BigInteger.valueOf(10000)).compareTo(
-                principal.multiply(liquidationThresholdBps)) >= 0;
-    }
-
-    static Address toAddress(byte[] pkh) {
-        return new Address(
-                new Credential.PubKeyCredential(PubKeyHash.of(pkh)),
-                Optional.empty());
+    @Entrypoint
+    public static boolean validate(LoanDatum datum, LoanAction redeemer, ScriptContext ctx) {
+        TxInfo txInfo = ctx.txInfo();
+        ContextsLib.trace("CollateralLoan validate");
+        return switch (redeemer) {
+            case OfferLoan o -> validateOfferLoan(datum, txInfo);
+            case TakeLoan t -> validateTakeLoan(datum, txInfo);
+            case RepayLoan r -> validateRepayLoan(datum, txInfo);
+            case Liquidate l -> validateLiquidate(datum, txInfo);
+        };
     }
 
     static boolean validateOfferLoan(LoanDatum datum, TxInfo txInfo) {
@@ -110,15 +102,23 @@ public class CollateralLoan {
         return lenderSigned && afterDeadline;
     }
 
-    @Entrypoint
-    public static boolean validate(LoanDatum datum, LoanAction redeemer, ScriptContext ctx) {
-        TxInfo txInfo = ctx.txInfo();
-        ContextsLib.trace("CollateralLoan validate");
-        return switch (redeemer) {
-            case OfferLoan o -> validateOfferLoan(datum, txInfo);
-            case TakeLoan t -> validateTakeLoan(datum, txInfo);
-            case RepayLoan r -> validateRepayLoan(datum, txInfo);
-            case Liquidate l -> validateLiquidate(datum, txInfo);
-        };
+    static Address toAddress(byte[] pkh) {
+        return new Address(
+                new Credential.PubKeyCredential(PubKeyHash.of(pkh)),
+                Optional.empty());
+    }
+
+    static boolean hasEnoughCollateral(BigInteger collateral, BigInteger principal) {
+        // collateral * 10000 >= principal * liquidationThresholdBps
+        return collateral.multiply(BigInteger.valueOf(10000)).compareTo(
+                principal.multiply(liquidationThresholdBps)) >= 0;
+    }
+
+    static BigInteger totalRepayment(BigInteger principal) {
+        return principal.add(calculateInterest(principal));
+    }
+
+    static BigInteger calculateInterest(BigInteger principal) {
+        return principal.multiply(interestRateBps).divide(BigInteger.valueOf(10000));
     }
 }

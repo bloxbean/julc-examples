@@ -44,10 +44,14 @@ public class SwapOrder {
     public record FillOrder() implements SwapAction {}
     public record CancelOrder() implements SwapAction {}
 
-    static Address makerAddress(byte[] makerPkh) {
-        return new Address(
-                new Credential.PubKeyCredential(PubKeyHash.of(makerPkh)),
-                Optional.empty());
+    @Entrypoint
+    public static boolean validate(OrderDatum datum, SwapAction redeemer, ScriptContext ctx) {
+        TxInfo txInfo = ctx.txInfo();
+        ContextsLib.trace("SwapOrder validate");
+        return switch (redeemer) {
+            case FillOrder f -> validateFillOrder(datum, txInfo);
+            case CancelOrder c -> validateCancelOrder(datum, txInfo);
+        };
     }
 
     static boolean validateFillOrder(OrderDatum datum, TxInfo txInfo) {
@@ -77,13 +81,9 @@ public class SwapOrder {
         return txInfo.signatories().contains(PubKeyHash.of(datum.maker()));
     }
 
-    @Entrypoint
-    public static boolean validate(OrderDatum datum, SwapAction redeemer, ScriptContext ctx) {
-        TxInfo txInfo = ctx.txInfo();
-        ContextsLib.trace("SwapOrder validate");
-        return switch (redeemer) {
-            case FillOrder f -> validateFillOrder(datum, txInfo);
-            case CancelOrder c -> validateCancelOrder(datum, txInfo);
-        };
+    static Address makerAddress(byte[] makerPkh) {
+        return new Address(
+                new Credential.PubKeyCredential(PubKeyHash.of(makerPkh)),
+                Optional.empty());
     }
 }

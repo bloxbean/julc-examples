@@ -22,8 +22,6 @@ import java.util.Optional;
  * UVerify Proxy Validator — @MultiValidator with MINT + SPEND.
  * Produces ONE script hash serving as both policy ID and script address.
  *
- * NOTE: Methods must be defined BEFORE their callers (JuLC single-pass compiler).
- *
  * Idiomatic JuLC: uses typed record casts, AddressLib, ContextsLib, OutputLib, ValuesLib.
  */
 @MultiValidator
@@ -38,15 +36,33 @@ public class UVerifyProxy {
     record Admin() implements ProxActionRedeemer {}
     record User() implements ProxActionRedeemer {}
 
-    // === Level 0: Leaf utilities (no dependencies) ===
+    // === Entrypoints ===
 
-    static byte[] getStateTokenName() {
-        byte[] idxBytes = ByteStringLib.integerToByteString(true, 0, utxoRefIdx.longValue());
-        byte[] combined = ByteStringLib.append(utxoRefTxId, idxBytes);
-        return CryptoLib.sha2_256(combined);
+    @Entrypoint(purpose = Purpose.MINT)
+    static boolean handleMint(ProxActionRedeemer redeemer, ScriptContext ctx) {
+        TxInfo txInfo = ctx.txInfo();
+        ScriptInfo.MintingScript mintInfo = (ScriptInfo.MintingScript) ctx.scriptInfo();
+        byte[] ownPolicyId = (byte[])(Object) mintInfo.policyId();
+
+        return switch (redeemer) {
+            case Admin a -> handleMintAdmin(txInfo, ownPolicyId);
+            case User u -> handleMintUser(txInfo, ownPolicyId);
+        };
     }
 
-    // === Level 1: Handler methods ===
+    @Entrypoint(purpose = Purpose.SPEND)
+    static boolean handleSpend(Optional<PlutusData> datum, ProxActionRedeemer redeemer, ScriptContext ctx) {
+        TxInfo txInfo = ctx.txInfo();
+        ScriptInfo.SpendingScript spendInfo = (ScriptInfo.SpendingScript) ctx.scriptInfo();
+        byte[] ownScriptHash = UVerifyTxLib.getOwnScriptHash(txInfo, spendInfo.txOutRef());
+
+        return switch (redeemer) {
+            case Admin a -> handleSpendAdmin(txInfo, datum, ownScriptHash);
+            case User u -> handleSpendUser(txInfo, ownScriptHash);
+        };
+    }
+
+    // === Handler methods ===
 
     static boolean handleMintAdmin(TxInfo txInfo, byte[] ownPolicyId) {
         boolean utxoRefConsumed = false;
@@ -164,29 +180,11 @@ public class UVerifyProxy {
         return UVerifyTxLib.hasWithdrawal(txInfo, scriptPointer);
     }
 
-    // === Level 3: Entrypoints (call Level 2 handlers) ===
+    // === Leaf utilities ===
 
-    @Entrypoint(purpose = Purpose.MINT)
-    static boolean handleMint(ProxActionRedeemer redeemer, ScriptContext ctx) {
-        TxInfo txInfo = ctx.txInfo();
-        ScriptInfo.MintingScript mintInfo = (ScriptInfo.MintingScript) ctx.scriptInfo();
-        byte[] ownPolicyId = (byte[])(Object) mintInfo.policyId();
-
-        return switch (redeemer) {
-            case Admin a -> handleMintAdmin(txInfo, ownPolicyId);
-            case User u -> handleMintUser(txInfo, ownPolicyId);
-        };
-    }
-
-    @Entrypoint(purpose = Purpose.SPEND)
-    static boolean handleSpend(Optional<PlutusData> datum, ProxActionRedeemer redeemer, ScriptContext ctx) {
-        TxInfo txInfo = ctx.txInfo();
-        ScriptInfo.SpendingScript spendInfo = (ScriptInfo.SpendingScript) ctx.scriptInfo();
-        byte[] ownScriptHash = UVerifyTxLib.getOwnScriptHash(txInfo, spendInfo.txOutRef());
-
-        return switch (redeemer) {
-            case Admin a -> handleSpendAdmin(txInfo, datum, ownScriptHash);
-            case User u -> handleSpendUser(txInfo, ownScriptHash);
-        };
+    static byte[] getStateTokenName() {
+        byte[] idxBytes = ByteStringLib.integerToByteString(true, 0, utxoRefIdx.longValue());
+        byte[] combined = ByteStringLib.append(utxoRefTxId, idxBytes);
+        return CryptoLib.sha2_256(combined);
     }
 }

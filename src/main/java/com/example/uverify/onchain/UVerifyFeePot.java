@@ -24,8 +24,6 @@ import java.util.Optional;
  * - Two redeemer variants: RELEASE (simple) and ON_BEHALF (with Ed25519 signature + TTL)
  *
  * Port of Aiken's uverify_fee_pot.ak
- *
- * NOTE: Methods must be defined BEFORE their callers (JuLC single-pass compiler).
  */
 @MultiValidator
 public class UVerifyFeePot {
@@ -41,42 +39,31 @@ public class UVerifyFeePot {
     record OnBehalf(byte[] message, byte[] signature, byte[] signerPublicKey,
                     byte[] submitterKeyHash, BigInteger ttl) implements Intent {}
 
-    // =====================================================================
-    // Level 0: Leaf utilities (no internal method dependencies)
-    // =====================================================================
+    // === Entrypoint ===
 
-    static BigInteger sumLovelaceAtWhitelistedScripts(JulcList<TxOut> outputs) {
-        BigInteger total = BigInteger.ZERO;
-        for (var output : outputs) {
-            if (AddressLib.isScriptAddress(output.address())) {
-                byte[] sh = AddressLib.credentialHash(output.address());
-                if (scriptWhitelist.any(w -> w.equals(sh))) {
-                    total = total.add(ValuesLib.lovelaceOf(output.value()));
-                }
-            }
+    @Entrypoint(purpose = Purpose.SPEND)
+    static boolean handleSpend(Optional<PlutusData> datum, Intent redeemer, ScriptContext ctx) {
+        TxInfo txInfo = ctx.txInfo();
+        ScriptInfo.SpendingScript spendInfo = (ScriptInfo.SpendingScript) ctx.scriptInfo();
+        TxOutRef utxo = spendInfo.txOutRef();
+
+        JulcList<PubKeyHash> signatories = txInfo.signatories();
+
+        if (UVerifyTxLib.oneOfKeysSigned(signatories, admins)) {
+            return true;
         }
-        return total;
+
+        if (!UVerifyTxLib.oneOfKeysSigned(signatories, users)) {
+            return false;
+        }
+
+        return switch (redeemer) {
+            case Release r -> handleRelease(txInfo, utxo);
+            case OnBehalf ob -> handleOnBehalf(txInfo, utxo, ob);
+        };
     }
 
-    // =====================================================================
-    // Level 1: Message construction for ON_BEHALF
-    // =====================================================================
-
-    static byte[] buildExpectedMessage(byte[] signerPkhHex, byte[] submitterKeyHashHex, BigInteger ttl) {
-        byte[] colon = ByteStringLib.cons(58, ByteStringLib.empty()); // ':'
-        byte[] ttlStr = ByteStringLib.intToDecimalString(ttl);
-        return ByteStringLib.append(
-                ByteStringLib.append(
-                        ByteStringLib.append(
-                                ByteStringLib.append(signerPkhHex, colon),
-                                submitterKeyHashHex),
-                        colon),
-                ttlStr);
-    }
-
-    // =====================================================================
-    // Level 2: Handler methods
-    // =====================================================================
+    // === Handler methods ===
 
     static boolean handleRelease(TxInfo txInfo, TxOutRef utxo) {
         TxOut ownInput = UVerifyTxLib.findOwnInput(txInfo.inputs(), utxo);
@@ -119,29 +106,30 @@ public class UVerifyFeePot {
         return upperBound.compareTo(ob.ttl()) <= 0;
     }
 
-    // =====================================================================
-    // Level 3: Entrypoint
-    // =====================================================================
+    // === Utilities ===
 
-    @Entrypoint(purpose = Purpose.SPEND)
-    static boolean handleSpend(Optional<PlutusData> datum, Intent redeemer, ScriptContext ctx) {
-        TxInfo txInfo = ctx.txInfo();
-        ScriptInfo.SpendingScript spendInfo = (ScriptInfo.SpendingScript) ctx.scriptInfo();
-        TxOutRef utxo = spendInfo.txOutRef();
+    static byte[] buildExpectedMessage(byte[] signerPkhHex, byte[] submitterKeyHashHex, BigInteger ttl) {
+        byte[] colon = ByteStringLib.cons(58, ByteStringLib.empty()); // ':'
+        byte[] ttlStr = ByteStringLib.intToDecimalString(ttl);
+        return ByteStringLib.append(
+                ByteStringLib.append(
+                        ByteStringLib.append(
+                                ByteStringLib.append(signerPkhHex, colon),
+                                submitterKeyHashHex),
+                        colon),
+                ttlStr);
+    }
 
-        JulcList<PubKeyHash> signatories = txInfo.signatories();
-
-        if (UVerifyTxLib.oneOfKeysSigned(signatories, admins)) {
-            return true;
+    static BigInteger sumLovelaceAtWhitelistedScripts(JulcList<TxOut> outputs) {
+        BigInteger total = BigInteger.ZERO;
+        for (var output : outputs) {
+            if (AddressLib.isScriptAddress(output.address())) {
+                byte[] sh = AddressLib.credentialHash(output.address());
+                if (scriptWhitelist.any(w -> w.equals(sh))) {
+                    total = total.add(ValuesLib.lovelaceOf(output.value()));
+                }
+            }
         }
-
-        if (!UVerifyTxLib.oneOfKeysSigned(signatories, users)) {
-            return false;
-        }
-
-        return switch (redeemer) {
-            case Release r -> handleRelease(txInfo, utxo);
-            case OnBehalf ob -> handleOnBehalf(txInfo, utxo, ob);
-        };
+        return total;
     }
 }

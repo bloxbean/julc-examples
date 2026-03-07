@@ -62,16 +62,45 @@ public class TokenDistributionValidator {
      */
     record Cancel() implements DistributionAction {}
 
-    // ---- Helper methods ----
+    @Entrypoint
+    public static boolean validate(DistributionDatum datum, DistributionAction redeemer,
+                                    ScriptContext ctx) {
+        TxInfo txInfo = ctx.txInfo();
+        var sigs = txInfo.signatories();
+
+        // Both actions require admin signature
+        ContextsLib.trace("Checking admin signature");
+        boolean isAdmin = hasSigner(sigs, adminPkh);
+
+        if (!isAdmin) {
+            return false;
+        }
+
+        return switch (redeemer) {
+            case Distribute d -> {
+                ContextsLib.trace("Distribute: checking all beneficiaries paid");
+                var outputs = txInfo.outputs();
+                yield allBeneficiariesPaid(datum.beneficiaries(), outputs);
+            }
+            case Cancel c -> {
+                // Cancel just needs admin signature (already checked)
+                ContextsLib.trace("Cancel: admin authorized");
+                yield true;
+            }
+        };
+    }
 
     /**
-     * Check if a given PKH is among the transaction signatories.
-     * Uses {@code list.any()} with inferred (untyped) lambda — the HOF double-unwrap
-     * fix now correctly handles ByteStringType params in HOF lambdas.
+     * Verify that every beneficiary receives at least their required amount.
+     * Uses {@code list.all()} with a block body lambda and variable capture.
      */
-    static boolean hasSigner(JulcList<PubKeyHash> signatories, byte[] pkh) {
-        return signatories.any(sig -> Builtins.equalsByteString(
-                (byte[])(Object) sig.hash(), pkh));
+    static boolean allBeneficiariesPaid(JulcList<BeneficiaryEntry> beneficiaries,
+                                         JulcList<TxOut> outputs) {
+        // Demonstrates: list.all(entry -> { ... }) with captured variable + block body
+        return beneficiaries.all(entry -> {
+            BigInteger paid = totalPaidTo(outputs, entry.pkh());
+            return paid.compareTo(entry.amount()) >= 0;
+        });
     }
 
     /**
@@ -104,43 +133,12 @@ public class TokenDistributionValidator {
     }
 
     /**
-     * Verify that every beneficiary receives at least their required amount.
-     * Uses {@code list.all()} with a block body lambda and variable capture.
+     * Check if a given PKH is among the transaction signatories.
+     * Uses {@code list.any()} with inferred (untyped) lambda — the HOF double-unwrap
+     * fix now correctly handles ByteStringType params in HOF lambdas.
      */
-    static boolean allBeneficiariesPaid(JulcList<BeneficiaryEntry> beneficiaries,
-                                         JulcList<TxOut> outputs) {
-        // Demonstrates: list.all(entry -> { ... }) with captured variable + block body
-        return beneficiaries.all(entry -> {
-            BigInteger paid = totalPaidTo(outputs, entry.pkh());
-            return paid.compareTo(entry.amount()) >= 0;
-        });
-    }
-
-    @Entrypoint
-    public static boolean validate(DistributionDatum datum, DistributionAction redeemer,
-                                    ScriptContext ctx) {
-        TxInfo txInfo = ctx.txInfo();
-        var sigs = txInfo.signatories();
-
-        // Both actions require admin signature
-        ContextsLib.trace("Checking admin signature");
-        boolean isAdmin = hasSigner(sigs, adminPkh);
-
-        if (!isAdmin) {
-            return false;
-        }
-
-        return switch (redeemer) {
-            case Distribute d -> {
-                ContextsLib.trace("Distribute: checking all beneficiaries paid");
-                var outputs = txInfo.outputs();
-                yield allBeneficiariesPaid(datum.beneficiaries(), outputs);
-            }
-            case Cancel c -> {
-                // Cancel just needs admin signature (already checked)
-                ContextsLib.trace("Cancel: admin authorized");
-                yield true;
-            }
-        };
+    static boolean hasSigner(JulcList<PubKeyHash> signatories, byte[] pkh) {
+        return signatories.any(sig -> Builtins.equalsByteString(
+                (byte[])(Object) sig.hash(), pkh));
     }
 }

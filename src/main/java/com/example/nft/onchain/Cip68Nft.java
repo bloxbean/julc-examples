@@ -57,42 +57,37 @@ public class Cip68Nft {
     public record UpdateMetadata() implements RefAction {}
     public record BurnReference() implements RefAction {}
 
-    // Helper: check if a credential is a script credential matching the given hash
-    static boolean isOwnScript(Credential cred, byte[] expectedHash) {
-        return switch (cred) {
-            case Credential.ScriptCredential sc ->
-                    ByteStringLib.equals(sc.hash().hash(), expectedHash);
-            case Credential.PubKeyCredential pk -> false;
-        };
-    }
-
-    // Helper: check if an output has an inline datum
-    static boolean hasInlineDatum(OutputDatum datum) {
-        return switch (datum) {
-            case OutputDatum.OutputDatumInline i -> true;
-            case OutputDatum.OutputDatumHash h -> false;
-            case OutputDatum.NoOutputDatum n -> false;
-        };
-    }
-
-    // Helper: extract own script hash from spending input
-    static byte[] getOwnScriptHash(TxInfo txInfo, TxOutRef spentRef) {
-        byte[] result = Builtins.emptyByteString();
-        for (var input : txInfo.inputs()) {
-            if (input.outRef().txId().equals(spentRef.txId())
-                    && input.outRef().index().equals(spentRef.index())) {
-                Credential cred = input.resolved().address().credential();
-                result = switch (cred) {
-                    case Credential.ScriptCredential sc -> (byte[])(Object) sc.hash();
-                    case Credential.PubKeyCredential pk -> Builtins.emptyByteString();
-                };
-                break;
-            }
-        }
-        return result;
-    }
-
     // ---- MINT entrypoint ----
+
+    @Entrypoint(purpose = Purpose.MINT)
+    public static boolean handleMint(MintAction redeemer, ScriptContext ctx) {
+        TxInfo txInfo = ctx.txInfo();
+        ScriptInfo.MintingScript mintInfo = (ScriptInfo.MintingScript) ctx.scriptInfo();
+        byte[] ownPolicyId = (byte[])(Object) mintInfo.policyId();
+
+        ContextsLib.trace("CIP-68 mint");
+        return switch (redeemer) {
+            case MintNft m -> validateMintNft(txInfo, ownPolicyId);
+            case BurnNft b -> validateBurnNft(txInfo, ownPolicyId);
+        };
+    }
+
+    // ---- SPEND entrypoint ----
+
+    @Entrypoint(purpose = Purpose.SPEND)
+    static boolean handleSpend(Optional<PlutusData> datum, RefAction redeemer, ScriptContext ctx) {
+        TxInfo txInfo = ctx.txInfo();
+        ScriptInfo.SpendingScript spendInfo = (ScriptInfo.SpendingScript) ctx.scriptInfo();
+        byte[] ownScriptHash = getOwnScriptHash(txInfo, spendInfo.txOutRef());
+
+        ContextsLib.trace("CIP-68 spend");
+        return switch (redeemer) {
+            case UpdateMetadata u -> validateUpdateMetadata(txInfo, ownScriptHash);
+            case BurnReference b -> validateBurnReference(txInfo, ownScriptHash);
+        };
+    }
+
+    // ---- Mint handlers ----
 
     public static boolean validateMintNft(TxInfo txInfo, byte[] ownPolicyId) {
         ContextsLib.trace("Mint NFT");
@@ -137,20 +132,7 @@ public class Cip68Nft {
         return refQty.equals(negOne) && userQty.equals(negOne);
     }
 
-    @Entrypoint(purpose = Purpose.MINT)
-    public static boolean handleMint(MintAction redeemer, ScriptContext ctx) {
-        TxInfo txInfo = ctx.txInfo();
-        ScriptInfo.MintingScript mintInfo = (ScriptInfo.MintingScript) ctx.scriptInfo();
-        byte[] ownPolicyId = (byte[])(Object) mintInfo.policyId();
-
-        ContextsLib.trace("CIP-68 mint");
-        return switch (redeemer) {
-            case MintNft m -> validateMintNft(txInfo, ownPolicyId);
-            case BurnNft b -> validateBurnNft(txInfo, ownPolicyId);
-        };
-    }
-
-    // ---- SPEND entrypoint ----
+    // ---- Spend handlers ----
 
     static boolean validateUpdateMetadata(TxInfo txInfo, byte[] ownScriptHash) {
         ContextsLib.trace("Update metadata");
@@ -176,16 +158,40 @@ public class Cip68Nft {
         return refQty.equals(negOne);
     }
 
-    @Entrypoint(purpose = Purpose.SPEND)
-    static boolean handleSpend(Optional<PlutusData> datum, RefAction redeemer, ScriptContext ctx) {
-        TxInfo txInfo = ctx.txInfo();
-        ScriptInfo.SpendingScript spendInfo = (ScriptInfo.SpendingScript) ctx.scriptInfo();
-        byte[] ownScriptHash = getOwnScriptHash(txInfo, spendInfo.txOutRef());
+    // ---- Utilities ----
 
-        ContextsLib.trace("CIP-68 spend");
-        return switch (redeemer) {
-            case UpdateMetadata u -> validateUpdateMetadata(txInfo, ownScriptHash);
-            case BurnReference b -> validateBurnReference(txInfo, ownScriptHash);
+    // Helper: check if a credential is a script credential matching the given hash
+    static boolean isOwnScript(Credential cred, byte[] expectedHash) {
+        return switch (cred) {
+            case Credential.ScriptCredential sc ->
+                    ByteStringLib.equals(sc.hash().hash(), expectedHash);
+            case Credential.PubKeyCredential pk -> false;
         };
+    }
+
+    // Helper: check if an output has an inline datum
+    static boolean hasInlineDatum(OutputDatum datum) {
+        return switch (datum) {
+            case OutputDatum.OutputDatumInline i -> true;
+            case OutputDatum.OutputDatumHash h -> false;
+            case OutputDatum.NoOutputDatum n -> false;
+        };
+    }
+
+    // Helper: extract own script hash from spending input
+    static byte[] getOwnScriptHash(TxInfo txInfo, TxOutRef spentRef) {
+        byte[] result = Builtins.emptyByteString();
+        for (var input : txInfo.inputs()) {
+            if (input.outRef().txId().equals(spentRef.txId())
+                    && input.outRef().index().equals(spentRef.index())) {
+                Credential cred = input.resolved().address().credential();
+                result = switch (cred) {
+                    case Credential.ScriptCredential sc -> (byte[])(Object) sc.hash();
+                    case Credential.PubKeyCredential pk -> Builtins.emptyByteString();
+                };
+                break;
+            }
+        }
+        return result;
     }
 }

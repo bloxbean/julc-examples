@@ -28,11 +28,6 @@ public class VestingValidator {
     record NestedRedeemer(BigInteger no, String msg) {}
     record VestingRedeemer(NestedRedeemer nestedRedeemer) {}
 
-    static boolean isBeneficiary(TxInfo txInfo, PubKeyHash pkh) {
-        var sigs = txInfo.signatories();
-        return sigs.contains(pkh);
-    }
-
     @Entrypoint
     public static boolean validate(VestingDatum datum, VestingRedeemer redeemer, ScriptContext ctx) {
         TxInfo txInfo = ctx.txInfo();
@@ -54,5 +49,10 @@ public class VestingValidator {
                 && requiredNo.equals(no)
                 && redeemer.nestedRedeemer().msg().equals(msg)
                 && txInfo.outputs().size() == 2 && found;
+    }
+
+    static boolean isBeneficiary(TxInfo txInfo, PubKeyHash pkh) {
+        var sigs = txInfo.signatories();
+        return sigs.contains(pkh);
     }
 }

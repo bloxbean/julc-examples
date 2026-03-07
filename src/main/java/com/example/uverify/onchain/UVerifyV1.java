@@ -20,8 +20,7 @@ import java.util.Optional;
 /**
  * UVerify V1 Validator — @MultiValidator with WITHDRAW + SPEND + CERTIFY.
  *
- * NOTE: Methods must be defined BEFORE their callers (JuLC single-pass compiler).
- * Order: data types → leaf utilities → shared validators → handlers → dispatch → entrypoints
+ * Order: data types → entrypoints → dispatch → handlers → validators → leaf utilities
  *
  * Idiomatic JuLC: uses typed record casts, AddressLib, ContextsLib, OutputLib, ValuesLib.
  */
@@ -46,7 +45,6 @@ public class UVerifyV1 {
 
     record UVerifyStateRedeemer(StatePurpose purpose, JulcList<UVerifyCertificate> certificates) {}
 
-    // Typed datum records — eliminates 22 manual accessor methods
     record StateDatum(byte[] id, byte[] owner, BigInteger fee, BigInteger feeInterval,
                       JulcList<byte[]> feeReceivers, BigInteger ttl, BigInteger countdown,
                       byte[] certHash, BigInteger batchSize, byte[] bootstrapName,
@@ -57,127 +55,80 @@ public class UVerifyV1 {
                           BigInteger ttl, BigInteger transactionLimit, BigInteger batchSize) {}
 
     // =====================================================================
-    // Level 0: Leaf utilities (no internal method dependencies)
+    // Entrypoints
     // =====================================================================
 
-    static boolean oneOfAdminKeysSigned(JulcList<PubKeyHash> signatories) {
-        return signatories.any(sig ->
-                sig.hash().equals(adminKey1) || sig.hash().equals(adminKey2));
+    @Entrypoint(purpose = Purpose.WITHDRAW)
+    static boolean handleWithdraw(UVerifyStateRedeemer redeemer, ScriptContext ctx) {
+        TxInfo txInfo = ctx.txInfo();
+        JulcList<TxInInfo> inputs = txInfo.inputs();
+        JulcList<TxInInfo> refInputs = txInfo.referenceInputs();
+        JulcList<TxOut> outputs = txInfo.outputs();
+        Value mint = txInfo.mint();
+        JulcList<PubKeyHash> signatories = txInfo.signatories();
+        Interval validRange = txInfo.validRange();
+
+        StatePurpose purpose = redeemer.purpose();
+        JulcList<UVerifyCertificate> certificates = redeemer.certificates();
+
+        boolean isMintOrBurn = ValuesLib.containsPolicy(mint, proxyPolicyId);
+        boolean hasScriptIn = UVerifyTxLib.hasScriptInput(inputs, proxyPolicyId);
+
+        boolean passMint = checkMint(isMintOrBurn, purpose, inputs, refInputs, outputs,
+                mint, signatories, validRange, certificates);
+        boolean passSpend = checkSpend(hasScriptIn, purpose, isMintOrBurn, inputs, outputs,
+                mint, signatories, validRange, certificates);
+
+        return passMint && passSpend;
     }
 
-    // =====================================================================
-    // Level 1: Certificate & state validators
-    // =====================================================================
-
-    static byte[] certificateToByteArray(UVerifyCertificate cert) {
-        byte[] base = ByteStringLib.append(
-                ByteStringLib.append(cert.hash(), cert.algorithm()), cert.issuer());
-        byte[] result = base;
-        for (var extra : cert.extra()) {
-            result = ByteStringLib.append(result, extra);
-        }
-        return result;
-    }
-
-    static boolean certificateIsValid(UVerifyCertificate cert, JulcList<PubKeyHash> signatories) {
-        if (cert.hash().length == 0) return false;
-        if (cert.issuer().length == 0) return false;
-        return signatories.any(sig -> sig.hash().equals(cert.issuer()));
-    }
-
-    static boolean certificatesAreValid(byte[] expectedHash, JulcList<UVerifyCertificate> certs,
-                                        JulcList<PubKeyHash> signatories) {
-        if (certs.isEmpty()) {
-            return expectedHash.length == 0;
-        }
-
-        byte[] aggregate = ByteStringLib.empty();
-        boolean allValid = true;
-        for (var cert : certs) {
-            if (!certificateIsValid(cert, signatories)) {
-                allValid = false;
-                break;
-            }
-            aggregate = ByteStringLib.append(aggregate, certificateToByteArray(cert));
-        }
-        if (!allValid) return false;
-
-        byte[] computedHash = CryptoLib.sha2_256(aggregate);
-        return computedHash.equals(expectedHash);
-    }
-
-    static boolean stateDatumIsValid(StateDatum sd, byte[] owner, BootstrapDatum bd) {
-        if (!sd.owner().equals(owner)) return false;
-        if (!sd.fee().equals(bd.fee())) return false;
-        if (!sd.feeInterval().equals(bd.feeInterval())) return false;
-        if (!Builtins.equalsData(sd.feeReceivers(), bd.feeReceivers())) return false;
-        if (!sd.ttl().equals(bd.ttl())) return false;
-        if (!sd.countdown().equals(bd.transactionLimit().subtract(BigInteger.ONE))) return false;
-        if (!sd.batchSize().equals(bd.batchSize())) return false;
-        if (!sd.bootstrapName().equals(bd.tokenName())) return false;
+    @Entrypoint(purpose = Purpose.SPEND)
+    static boolean handleSpend(Optional<PlutusData> datum, PlutusData rdmr, ScriptContext ctx) {
         return true;
     }
 
-    static boolean verifyStateMutation(StateDatum next, StateDatum cur) {
-        if (cur.keepAsOracle()) return false;
-        if (!next.id().equals(cur.id())) return false;
-        if (!next.owner().equals(cur.owner())) return false;
-        if (!next.fee().equals(cur.fee())) return false;
-        if (!next.feeInterval().equals(cur.feeInterval())) return false;
-        if (!Builtins.equalsData(next.feeReceivers(), cur.feeReceivers())) return false;
-        if (!next.ttl().equals(cur.ttl())) return false;
-        if (!next.batchSize().equals(cur.batchSize())) return false;
-        if (!next.bootstrapName().equals(cur.bootstrapName())) return false;
-        if (next.keepAsOracle() != cur.keepAsOracle()) return false;
-        return next.countdown().equals(cur.countdown().subtract(BigInteger.ONE));
-    }
-
-    static boolean isStateAlive(StateDatum sd, Interval validRange) {
-        return sd.countdown().compareTo(BigInteger.ZERO) > 0
-                && UVerifyTxLib.tokenNotExpired(validRange, sd.ttl());
-    }
-
-    static boolean containsServiceFee(JulcList<TxOut> outputs, StateDatum sd) {
-        BigInteger fee = sd.fee();
-        BigInteger feeInterval = sd.feeInterval();
-        if (fee.equals(BigInteger.ZERO)) return true;
-        if (feeInterval.equals(BigInteger.ZERO)) return true;
-
-        BigInteger nextCountdown = sd.countdown().add(BigInteger.ONE);
-        if (!nextCountdown.remainder(feeInterval).equals(BigInteger.ZERO)) return true;
-
-        JulcList<byte[]> receivers = sd.feeReceivers();
-        if (receivers.isEmpty()) return true;
-
-        long numReceivers = receivers.size();
-        BigInteger feePerRecv = fee.divide(BigInteger.valueOf(numReceivers));
-
-        boolean allPaid = true;
-        for (var recv : receivers) {
-            if (!UVerifyTxLib.receiverPaid(recv, feePerRecv, outputs)) {
-                allPaid = false;
-            }
-        }
-        return allPaid;
-    }
-
-    static boolean noScriptOutputWithPolicy(JulcList<TxOut> outputs) {
-        boolean clean = true;
-        for (var output : outputs) {
-            if (AddressLib.isScriptAddress(output.address())) {
-                byte[] sh = AddressLib.credentialHash(output.address());
-                if (sh.equals(proxyPolicyId)
-                        && ValuesLib.containsPolicy(output.value(), proxyPolicyId)) {
-                    clean = false;
-                    break;
-                }
-            }
-        }
-        return clean;
+    @Entrypoint(purpose = Purpose.CERTIFY)
+    static boolean handleCertify(PlutusData redeemer, ScriptContext ctx) {
+        return true;
     }
 
     // =====================================================================
-    // Level 2: Handler methods (call Level 0 + Level 1)
+    // Dispatch
+    // =====================================================================
+
+    static boolean checkMint(boolean isMintOrBurn, StatePurpose purpose,
+                             JulcList<TxInInfo> inputs, JulcList<TxInInfo> refInputs,
+                             JulcList<TxOut> outputs, Value mint,
+                             JulcList<PubKeyHash> signatories, Interval validRange,
+                             JulcList<UVerifyCertificate> certificates) {
+        if (!isMintOrBurn) return true;
+        return switch (purpose) {
+            case MintBootstrap mb -> handleMintBootstrap(outputs, mint, signatories);
+            case MintState ms -> handleMintState(inputs, refInputs, outputs, mint, signatories,
+                    validRange, certificates);
+            case BurnBootstrap bb -> handleBurnBootstrap(inputs, outputs, mint, signatories);
+            case BurnState bs -> handleBurnState(inputs, outputs, mint, signatories, certificates);
+            case UpdateState us -> true;
+        };
+    }
+
+    static boolean checkSpend(boolean hasScriptIn, StatePurpose purpose, boolean isMintOrBurn,
+                              JulcList<TxInInfo> inputs, JulcList<TxOut> outputs, Value mint,
+                              JulcList<PubKeyHash> signatories, Interval validRange,
+                              JulcList<UVerifyCertificate> certificates) {
+        if (!hasScriptIn) return true;
+        return switch (purpose) {
+            case BurnBootstrap bb -> isMintOrBurn;
+            case BurnState bs -> isMintOrBurn;
+            case UpdateState us -> handleUpdateState(inputs, outputs, mint, signatories,
+                    validRange, certificates);
+            case MintState ms -> true;
+            case MintBootstrap mb -> true;
+        };
+    }
+
+    // =====================================================================
+    // Handlers
     // =====================================================================
 
     static boolean handleMintBootstrap(JulcList<TxOut> outputs, Value mint,
@@ -397,75 +348,123 @@ public class UVerifyV1 {
     }
 
     // =====================================================================
-    // Level 3: Dispatch (calls Level 2 handlers)
+    // Certificate & state validators
     // =====================================================================
 
-    static boolean checkMint(boolean isMintOrBurn, StatePurpose purpose,
-                             JulcList<TxInInfo> inputs, JulcList<TxInInfo> refInputs,
-                             JulcList<TxOut> outputs, Value mint,
-                             JulcList<PubKeyHash> signatories, Interval validRange,
-                             JulcList<UVerifyCertificate> certificates) {
-        if (!isMintOrBurn) return true;
-        return switch (purpose) {
-            case MintBootstrap mb -> handleMintBootstrap(outputs, mint, signatories);
-            case MintState ms -> handleMintState(inputs, refInputs, outputs, mint, signatories,
-                    validRange, certificates);
-            case BurnBootstrap bb -> handleBurnBootstrap(inputs, outputs, mint, signatories);
-            case BurnState bs -> handleBurnState(inputs, outputs, mint, signatories, certificates);
-            case UpdateState us -> true;
-        };
+    static boolean certificatesAreValid(byte[] expectedHash, JulcList<UVerifyCertificate> certs,
+                                        JulcList<PubKeyHash> signatories) {
+        if (certs.isEmpty()) {
+            return expectedHash.length == 0;
+        }
+
+        byte[] aggregate = ByteStringLib.empty();
+        boolean allValid = true;
+        for (var cert : certs) {
+            if (!certificateIsValid(cert, signatories)) {
+                allValid = false;
+                break;
+            }
+            aggregate = ByteStringLib.append(aggregate, certificateToByteArray(cert));
+        }
+        if (!allValid) return false;
+
+        byte[] computedHash = CryptoLib.sha2_256(aggregate);
+        return computedHash.equals(expectedHash);
     }
 
-    static boolean checkSpend(boolean hasScriptIn, StatePurpose purpose, boolean isMintOrBurn,
-                              JulcList<TxInInfo> inputs, JulcList<TxOut> outputs, Value mint,
-                              JulcList<PubKeyHash> signatories, Interval validRange,
-                              JulcList<UVerifyCertificate> certificates) {
-        if (!hasScriptIn) return true;
-        return switch (purpose) {
-            case BurnBootstrap bb -> isMintOrBurn;
-            case BurnState bs -> isMintOrBurn;
-            case UpdateState us -> handleUpdateState(inputs, outputs, mint, signatories,
-                    validRange, certificates);
-            case MintState ms -> true;
-            case MintBootstrap mb -> true;
-        };
-    }
-
-    // =====================================================================
-    // Level 4: Entrypoints (call Level 3 dispatch)
-    // =====================================================================
-
-    @Entrypoint(purpose = Purpose.WITHDRAW)
-    static boolean handleWithdraw(UVerifyStateRedeemer redeemer, ScriptContext ctx) {
-        TxInfo txInfo = ctx.txInfo();
-        JulcList<TxInInfo> inputs = txInfo.inputs();
-        JulcList<TxInInfo> refInputs = txInfo.referenceInputs();
-        JulcList<TxOut> outputs = txInfo.outputs();
-        Value mint = txInfo.mint();
-        JulcList<PubKeyHash> signatories = txInfo.signatories();
-        Interval validRange = txInfo.validRange();
-
-        StatePurpose purpose = redeemer.purpose();
-        JulcList<UVerifyCertificate> certificates = redeemer.certificates();
-
-        boolean isMintOrBurn = ValuesLib.containsPolicy(mint, proxyPolicyId);
-        boolean hasScriptIn = UVerifyTxLib.hasScriptInput(inputs, proxyPolicyId);
-
-        boolean passMint = checkMint(isMintOrBurn, purpose, inputs, refInputs, outputs,
-                mint, signatories, validRange, certificates);
-        boolean passSpend = checkSpend(hasScriptIn, purpose, isMintOrBurn, inputs, outputs,
-                mint, signatories, validRange, certificates);
-
-        return passMint && passSpend;
-    }
-
-    @Entrypoint(purpose = Purpose.SPEND)
-    static boolean handleSpend(Optional<PlutusData> datum, PlutusData rdmr, ScriptContext ctx) {
+    static boolean stateDatumIsValid(StateDatum sd, byte[] owner, BootstrapDatum bd) {
+        if (!sd.owner().equals(owner)) return false;
+        if (!sd.fee().equals(bd.fee())) return false;
+        if (!sd.feeInterval().equals(bd.feeInterval())) return false;
+        if (!Builtins.equalsData(sd.feeReceivers(), bd.feeReceivers())) return false;
+        if (!sd.ttl().equals(bd.ttl())) return false;
+        if (!sd.countdown().equals(bd.transactionLimit().subtract(BigInteger.ONE))) return false;
+        if (!sd.batchSize().equals(bd.batchSize())) return false;
+        if (!sd.bootstrapName().equals(bd.tokenName())) return false;
         return true;
     }
 
-    @Entrypoint(purpose = Purpose.CERTIFY)
-    static boolean handleCertify(PlutusData redeemer, ScriptContext ctx) {
-        return true;
+    static boolean verifyStateMutation(StateDatum next, StateDatum cur) {
+        if (cur.keepAsOracle()) return false;
+        if (!next.id().equals(cur.id())) return false;
+        if (!next.owner().equals(cur.owner())) return false;
+        if (!next.fee().equals(cur.fee())) return false;
+        if (!next.feeInterval().equals(cur.feeInterval())) return false;
+        if (!Builtins.equalsData(next.feeReceivers(), cur.feeReceivers())) return false;
+        if (!next.ttl().equals(cur.ttl())) return false;
+        if (!next.batchSize().equals(cur.batchSize())) return false;
+        if (!next.bootstrapName().equals(cur.bootstrapName())) return false;
+        if (next.keepAsOracle() != cur.keepAsOracle()) return false;
+        return next.countdown().equals(cur.countdown().subtract(BigInteger.ONE));
     }
+
+    static boolean isStateAlive(StateDatum sd, Interval validRange) {
+        return sd.countdown().compareTo(BigInteger.ZERO) > 0
+                && UVerifyTxLib.tokenNotExpired(validRange, sd.ttl());
+    }
+
+    static boolean containsServiceFee(JulcList<TxOut> outputs, StateDatum sd) {
+        BigInteger fee = sd.fee();
+        BigInteger feeInterval = sd.feeInterval();
+        if (fee.equals(BigInteger.ZERO)) return true;
+        if (feeInterval.equals(BigInteger.ZERO)) return true;
+
+        BigInteger nextCountdown = sd.countdown().add(BigInteger.ONE);
+        if (!nextCountdown.remainder(feeInterval).equals(BigInteger.ZERO)) return true;
+
+        JulcList<byte[]> receivers = sd.feeReceivers();
+        if (receivers.isEmpty()) return true;
+
+        long numReceivers = receivers.size();
+        BigInteger feePerRecv = fee.divide(BigInteger.valueOf(numReceivers));
+
+        boolean allPaid = true;
+        for (var recv : receivers) {
+            if (!UVerifyTxLib.receiverPaid(recv, feePerRecv, outputs)) {
+                allPaid = false;
+            }
+        }
+        return allPaid;
+    }
+
+    static boolean noScriptOutputWithPolicy(JulcList<TxOut> outputs) {
+        boolean clean = true;
+        for (var output : outputs) {
+            if (AddressLib.isScriptAddress(output.address())) {
+                byte[] sh = AddressLib.credentialHash(output.address());
+                if (sh.equals(proxyPolicyId)
+                        && ValuesLib.containsPolicy(output.value(), proxyPolicyId)) {
+                    clean = false;
+                    break;
+                }
+            }
+        }
+        return clean;
+    }
+
+    // =====================================================================
+    // Leaf utilities
+    // =====================================================================
+
+    static boolean certificateIsValid(UVerifyCertificate cert, JulcList<PubKeyHash> signatories) {
+        if (cert.hash().length == 0) return false;
+        if (cert.issuer().length == 0) return false;
+        return signatories.any(sig -> sig.hash().equals(cert.issuer()));
+    }
+
+    static byte[] certificateToByteArray(UVerifyCertificate cert) {
+        byte[] base = ByteStringLib.append(
+                ByteStringLib.append(cert.hash(), cert.algorithm()), cert.issuer());
+        byte[] result = base;
+        for (var extra : cert.extra()) {
+            result = ByteStringLib.append(result, extra);
+        }
+        return result;
+    }
+
+    static boolean oneOfAdminKeysSigned(JulcList<PubKeyHash> signatories) {
+        return signatories.any(sig ->
+                sig.hash().equals(adminKey1) || sig.hash().equals(adminKey2));
+    }
+
 }

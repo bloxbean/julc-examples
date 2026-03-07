@@ -55,92 +55,6 @@ public class WingRidersPoolValidator {
     // --- Pool redeemer ---
     record Evolve(List<BigInteger> requestIndices) {}
 
-    /**
-     * Check compensation output datum based on beneficiary type.
-     */
-    static boolean checkOutputDatum(boolean beneficiaryIsScript, TxOut compensationOutput) {
-        OutputDatum outDatum = compensationOutput.datum();
-        if (beneficiaryIsScript) {
-            return switch (outDatum) {
-                case OutputDatum.OutputDatumHash dh -> ByteStringLib.equals((byte[])(Object) dh.hash(), enforcedScriptOutputDatumHash);
-                case OutputDatum.NoOutputDatum no -> false;
-                case OutputDatum.OutputDatumInline inl -> false;
-            };
-        } else {
-            return switch (outDatum) {
-                case OutputDatum.NoOutputDatum no -> true;
-                case OutputDatum.OutputDatumHash dh -> false;
-                case OutputDatum.OutputDatumInline inl -> false;
-            };
-        }
-    }
-
-    /**
-     * Action-specific validation.
-     */
-    static boolean checkAction(RequestAction action, byte[] beneficiaryHash, boolean beneficiaryIsScript,
-                               Value requestValue, Value compensationValue,
-                               byte[] poolAPolicyId, byte[] shareAssetName) {
-        return switch (action) {
-            case ExtractTreasury et -> {
-                yield beneficiaryIsScript && ByteStringLib.equals(beneficiaryHash, treasuryHolderScriptHash);
-            }
-            case AddStakingRewards asr -> {
-                boolean aIsAda = ByteStringLib.length(poolAPolicyId) == 0;
-                BigInteger requestRewardQty = ValuesLib.assetOf(requestValue, stakingRewardsPolicyId, shareAssetName);
-                BigInteger compensationRewardQty = ValuesLib.assetOf(compensationValue, stakingRewardsPolicyId, shareAssetName);
-                yield aIsAda
-                        && requestRewardQty.compareTo(BigInteger.ONE) == 0
-                        && compensationRewardQty.compareTo(BigInteger.ONE) == 0;
-            }
-            case Swap s -> true;
-            case AddLiquidity al -> true;
-            case WithdrawLiquidity wl -> true;
-        };
-    }
-
-    /**
-     * Validate a single request.
-     */
-    static boolean validateSingleRequest(TxInInfo requestInput, TxOut compensationOutput,
-                                         RequestDatum requestDatum,
-                                         BigInteger txValidityEnd, byte[] requestHash,
-                                         byte[] aPolicyId, byte[] aAssetName,
-                                         byte[] bPolicyId, byte[] bAssetName,
-                                         byte[] shareAssetName) {
-        TxOut requestOutput = requestInput.resolved();
-
-        // 1. Compensation address matches beneficiary
-        byte[] compensationCredHash = WingRidersUtils.credentialHash(compensationOutput.address());
-        boolean addressMatch = ByteStringLib.equals(requestDatum.beneficiaryHash(), compensationCredHash);
-
-        // 2. Deadline not exceeded
-        boolean deadlineOk = txValidityEnd.compareTo(requestDatum.deadline()) < 0;
-
-        // 3. Input script hash matches request hash
-        byte[] inputScriptHash = WingRidersUtils.credentialHash(requestOutput.address());
-        boolean scriptHashMatch = ByteStringLib.equals(inputScriptHash, requestHash);
-
-        // 4-5. Token policy/name matches
-        boolean aPolicyMatch = ByteStringLib.equals(requestDatum.aPolicyId(), aPolicyId);
-        boolean aNameMatch = ByteStringLib.equals(requestDatum.aAssetName(), aAssetName);
-        boolean bPolicyMatch = ByteStringLib.equals(requestDatum.bPolicyId(), bPolicyId);
-        boolean bNameMatch = ByteStringLib.equals(requestDatum.bAssetName(), bAssetName);
-
-        // 6. Correct output datum
-        boolean datumOk = checkOutputDatum(requestDatum.beneficiaryIsScript(), compensationOutput);
-
-        // 7. Action-specific checks
-        boolean actionOk = checkAction(requestDatum.action(), requestDatum.beneficiaryHash(),
-                requestDatum.beneficiaryIsScript(),
-                requestOutput.value(), compensationOutput.value(),
-                aPolicyId, shareAssetName);
-
-        return addressMatch && deadlineOk && scriptHashMatch
-                && aPolicyMatch && aNameMatch && bPolicyMatch && bNameMatch
-                && datumOk && actionOk;
-    }
-
     @Entrypoint
     public static boolean validate(PoolDatum datum, Evolve redeemer, ScriptContext ctx) {
         TxInfo txInfo = ctx.txInfo();
@@ -200,5 +114,91 @@ public class WingRidersPoolValidator {
         }
 
         return allValid;
+    }
+
+    /**
+     * Validate a single request.
+     */
+    static boolean validateSingleRequest(TxInInfo requestInput, TxOut compensationOutput,
+                                         RequestDatum requestDatum,
+                                         BigInteger txValidityEnd, byte[] requestHash,
+                                         byte[] aPolicyId, byte[] aAssetName,
+                                         byte[] bPolicyId, byte[] bAssetName,
+                                         byte[] shareAssetName) {
+        TxOut requestOutput = requestInput.resolved();
+
+        // 1. Compensation address matches beneficiary
+        byte[] compensationCredHash = WingRidersUtils.credentialHash(compensationOutput.address());
+        boolean addressMatch = ByteStringLib.equals(requestDatum.beneficiaryHash(), compensationCredHash);
+
+        // 2. Deadline not exceeded
+        boolean deadlineOk = txValidityEnd.compareTo(requestDatum.deadline()) < 0;
+
+        // 3. Input script hash matches request hash
+        byte[] inputScriptHash = WingRidersUtils.credentialHash(requestOutput.address());
+        boolean scriptHashMatch = ByteStringLib.equals(inputScriptHash, requestHash);
+
+        // 4-5. Token policy/name matches
+        boolean aPolicyMatch = ByteStringLib.equals(requestDatum.aPolicyId(), aPolicyId);
+        boolean aNameMatch = ByteStringLib.equals(requestDatum.aAssetName(), aAssetName);
+        boolean bPolicyMatch = ByteStringLib.equals(requestDatum.bPolicyId(), bPolicyId);
+        boolean bNameMatch = ByteStringLib.equals(requestDatum.bAssetName(), bAssetName);
+
+        // 6. Correct output datum
+        boolean datumOk = checkOutputDatum(requestDatum.beneficiaryIsScript(), compensationOutput);
+
+        // 7. Action-specific checks
+        boolean actionOk = checkAction(requestDatum.action(), requestDatum.beneficiaryHash(),
+                requestDatum.beneficiaryIsScript(),
+                requestOutput.value(), compensationOutput.value(),
+                aPolicyId, shareAssetName);
+
+        return addressMatch && deadlineOk && scriptHashMatch
+                && aPolicyMatch && aNameMatch && bPolicyMatch && bNameMatch
+                && datumOk && actionOk;
+    }
+
+    /**
+     * Action-specific validation.
+     */
+    static boolean checkAction(RequestAction action, byte[] beneficiaryHash, boolean beneficiaryIsScript,
+                               Value requestValue, Value compensationValue,
+                               byte[] poolAPolicyId, byte[] shareAssetName) {
+        return switch (action) {
+            case ExtractTreasury et -> {
+                yield beneficiaryIsScript && ByteStringLib.equals(beneficiaryHash, treasuryHolderScriptHash);
+            }
+            case AddStakingRewards asr -> {
+                boolean aIsAda = ByteStringLib.length(poolAPolicyId) == 0;
+                BigInteger requestRewardQty = ValuesLib.assetOf(requestValue, stakingRewardsPolicyId, shareAssetName);
+                BigInteger compensationRewardQty = ValuesLib.assetOf(compensationValue, stakingRewardsPolicyId, shareAssetName);
+                yield aIsAda
+                        && requestRewardQty.compareTo(BigInteger.ONE) == 0
+                        && compensationRewardQty.compareTo(BigInteger.ONE) == 0;
+            }
+            case Swap s -> true;
+            case AddLiquidity al -> true;
+            case WithdrawLiquidity wl -> true;
+        };
+    }
+
+    /**
+     * Check compensation output datum based on beneficiary type.
+     */
+    static boolean checkOutputDatum(boolean beneficiaryIsScript, TxOut compensationOutput) {
+        OutputDatum outDatum = compensationOutput.datum();
+        if (beneficiaryIsScript) {
+            return switch (outDatum) {
+                case OutputDatum.OutputDatumHash dh -> ByteStringLib.equals((byte[])(Object) dh.hash(), enforcedScriptOutputDatumHash);
+                case OutputDatum.NoOutputDatum no -> false;
+                case OutputDatum.OutputDatumInline inl -> false;
+            };
+        } else {
+            return switch (outDatum) {
+                case OutputDatum.NoOutputDatum no -> true;
+                case OutputDatum.OutputDatumHash dh -> false;
+                case OutputDatum.OutputDatumInline inl -> false;
+            };
+        }
     }
 }

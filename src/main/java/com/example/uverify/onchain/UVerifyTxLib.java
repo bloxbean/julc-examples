@@ -83,9 +83,7 @@ public class UVerifyTxLib {
     static BigInteger sumLovelaceAtAddress(JulcList<TxOut> outputs, Address addr) {
         BigInteger total = BigInteger.ZERO;
         for (var output : outputs) {
-            PlutusData addrA = (PlutusData)(Object) output.address();
-            PlutusData addrB = (PlutusData)(Object) addr;
-            if (Builtins.equalsData(addrA, addrB)) {
+            if (Builtins.equalsData(output.address(), addr)) {
                 total = total.add(ValuesLib.lovelaceOf(output.value()));
             }
         }

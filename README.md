@@ -12,24 +12,52 @@ Example repository for [JuLC](https://github.com/bloxbean/julc) - Validators, wi
 
 ```
 src/main/java/com/example/
-├── validators/          # On-chain validators and minting policies
-├── offchain/            # Off-chain demo programs (transaction building)
-├── swap/                # DEX swap order (on-chain + off-chain + README)
-├── lending/             # Collateral loan (on-chain + off-chain + README)
-├── nft/                 # CIP-68 NFT (on-chain + off-chain + README)
-├── uverify/             # UVerify document verification (on-chain + off-chain + tests)
-├── benchmark/           # WingRiders DEX benchmark validators
-├── mpf/                 # Merkle-Patricia Forestry types
-└── util/                # Utility classes
+├── cftemplates/             # Cardano Foundation template validators (19 templates)
+│   ├── anonymousdata/       # Commit-reveal anonymous data verification
+│   ├── atomictx/            # Atomic transaction (spend + mint)
+│   ├── auction/             # English auction
+│   ├── bet/                 # Two-player oracle-resolved bet
+│   ├── crowdfund/           # Crowdfunding with deadline and goal
+│   ├── escrow/              # Two-phase asset escrow
+│   ├── factory/             # Factory pattern with product minting
+│   ├── htlc/                # Hash Time-Locked Contract
+│   ├── identity/            # Decentralized identity with delegates
+│   ├── lottery/             # Commit-reveal lottery game
+│   ├── paymentsplitter/     # Equal payment distribution
+│   ├── pricebet/            # Oracle-based price betting
+│   ├── simpletransfer/      # Simple receiver-locked transfer
+│   ├── simplewallet/        # Payment intent wallet
+│   ├── storage/             # Immutable audit snapshot storage
+│   ├── tokentransfer/       # Native asset guarded transfer
+│   ├── upgradeableproxy/    # Upgradeable proxy with state token
+│   ├── vault/               # Two-phase withdrawal with time lock
+│   └── vesting/             # Time-locked vesting
+├── validators/              # On-chain validators and minting policies
+├── offchain/                # Off-chain demo programs (transaction building)
+├── swap/                    # DEX swap order (on-chain + off-chain)
+├── lending/                 # Collateral loan (on-chain + off-chain)
+├── nft/                     # CIP-68 NFT (on-chain + off-chain)
+├── uverify/                 # UVerify document verification (on-chain + off-chain)
+├── benchmark/               # WingRiders DEX benchmark validators
+├── mpf/                     # Merkle-Patricia Forestry types
+└── util/                    # Utility classes
 
 src/test/java/com/example/
-├── validators/          # Unit tests for validators
-├── swap/                # SwapOrder tests (Direct Java + UPLC + JulcEval proxy)
-├── lending/             # CollateralLoan tests (Direct Java + UPLC + JulcEval proxy)
-├── nft/                 # Cip68Nft tests (UPLC + JulcEval proxy)
-├── uverify/             # UVerify tests (Proxy + V1 + FeePot)
-├── benchmark/           # Benchmark tests
-└── mpf/                 # MPF tests
+├── cftemplates/             # Unit + integration tests for all CF templates
+├── validators/              # Unit tests for validators
+├── swap/                    # SwapOrder tests
+├── lending/                 # CollateralLoan tests
+├── nft/                     # Cip68Nft tests
+├── uverify/                 # UVerify tests
+├── benchmark/               # Benchmark tests
+└── mpf/                     # MPF tests
+```
+
+Each CF template follows a consistent structure:
+```
+cftemplates/<template>/
+├── onchain/                 # Validator class(es)
+└── offchain/                # Off-chain demo
 ```
 
 ## Build
@@ -48,15 +76,49 @@ src/test/java/com/example/
 
 Off-chain demos require a running [Yaci Devkit](https://github.com/bloxbean/yaci-devkit) instance.
 
-```bash
-# Default: VestingDemo
-./gradlew run
+### CF Template Demos
 
-# Run a specific demo
-./gradlew run -PmainClass=com.example.offchain.VestingDemo
+Use the `run-cfdemo.sh` script to run the 19 Cardano Foundation template demos:
+
+```bash
+# Run all 19 CF template demos sequentially
+./run-cfdemo.sh
+
+# Run a single demo
+./run-cfdemo.sh escrow
+
+# List available demos
+./run-cfdemo.sh --list
 ```
 
-### Available Demos
+| Demo | Description |
+|------|-------------|
+| anonymousdata | Commit-reveal scheme with blake2b_256(pkh \|\| nonce) |
+| atomictx | Atomic spend + mint with password protection |
+| auction | English auction with bidding and settlement |
+| bet | Two-player bet resolved by oracle |
+| crowdfund | Donation collection toward goal by deadline |
+| escrow | Two-phase asset swap between parties |
+| factory | One-shot factory marker with product creation |
+| htlc | Hash Time-Locked Contract (secret claim or timeout reclaim) |
+| identity | Decentralized identity with owner and delegates |
+| lottery | Commit-reveal game with parity-based winner |
+| paymentsplitter | Equal fund distribution among payees |
+| pricebet | Oracle-based price betting with reference inputs |
+| simpletransfer | Receiver-locked fund release |
+| simplewallet | Payment intent minting and execution |
+| storage | Immutable audit snapshot commitments |
+| tokentransfer | Native asset guarded transfer |
+| upgradeableproxy | State token proxy with withdrawal delegation |
+| vault | Two-phase withdrawal with time lock |
+| vesting | Time-locked funds with beneficiary claim |
+
+### Other Demos
+
+```bash
+# Run a specific demo by class name
+./gradlew run -PmainClass=com.example.offchain.VestingDemo
+```
 
 | Demo | Main Class |
 |------|------------|
@@ -75,4 +137,3 @@ Off-chain demos require a running [Yaci Devkit](https://github.com/bloxbean/yaci
 | Collateral Loan | `com.example.lending.offchain.CollateralLoanDemo` |
 | CIP-68 NFT | `com.example.nft.offchain.Cip68NftDemo` |
 | UVerify (Proxy + V1) | `com.example.uverify.offchain.UVerifyDemo` |
-

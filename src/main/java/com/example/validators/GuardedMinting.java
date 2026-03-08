@@ -24,7 +24,7 @@ public class GuardedMinting {
     @Entrypoint
     public static boolean validate(PlutusData redeemer, ScriptContext ctx) {
         TxInfo txInfo = ctx.txInfo();
-        byte[] pkh = (byte[])(Object) Builtins.unBData(redeemer);
+        byte[] pkh = Builtins.unBData(redeemer);
         return txInfo.signatories().any(sig -> sig.hash().equals(pkh));
     }
 }

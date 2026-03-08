@@ -7,7 +7,7 @@ group = 'com.example'
 version = '0.1.0'
 
 ext {
-    julcVersion = '0.1.0-055d17f-SNAPSHOT'
+    julcVersion = '0.1.0-pre1'
     cardanoClientLibVersion = '0.8.0-preview1'
 }
 
@@ -60,6 +60,7 @@ dependencies {
     implementation "com.bloxbean.cardano:cardano-client-backend-blockfrost:${cardanoClientLibVersion}"
 
     // Test dependencies
+    testImplementation 'org.bouncycastle:bcprov-jdk18on:1.83'
     testImplementation "com.bloxbean.cardano:julc-testkit:${julcVersion}"
     testImplementation "com.bloxbean.cardano:julc-compiler:${julcVersion}"
     testImplementation "com.bloxbean.cardano:julc-stdlib:${julcVersion}"

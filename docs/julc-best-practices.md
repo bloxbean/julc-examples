@@ -23,6 +23,7 @@ JuLC compiles a subset of Java to Plutus UPLC. Not all Java features are availab
 | Lambda expressions | Single-expression lambdas for `JulcList.any()`, `.find()`, `.filter()`, `.map()`, etc. |
 | Static methods | All validator/library methods must be static. |
 | `BigInteger` arithmetic | `.add()`, `.subtract()`, `.multiply()`, `.divide()`, `.remainder()`, `.compareTo()` |
+| Nested loops | while-in-while, for-each-in-for-each, and mixed nesting all supported. |
 
 ### 1.2 Not Supported
 
@@ -33,24 +34,13 @@ JuLC compiles a subset of Java to Plutus UPLC. Not all Java features are availab
 | `return` inside loops | Use `break` + accumulator variable. |
 | `instanceof` pattern matching | Use `switch` on sealed interfaces, or `Builtins.constrTag()` for raw Data. |
 | Variable reassignment in loops | Variables are effectively immutable inside loop bodies. Use accumulators that accumulate via `consByteString` / list prepend. For complex accumulation, extract to recursive helper methods. |
-| Nested `while` loops | Causes MkCons type mismatch. Extract inner loop into a separate method. |
-| `String` type | Use `byte[]` for all string-like data. |
+| `String` type | Very limited on-chain — only usable for trace messages. Use `byte[]` for all data. |
 | `int` / `long` arithmetic | Use `BigInteger` for on-chain integers. `long` is only for Builtins that take machine integers (e.g., `indexByteString`). |
 | Object instantiation (`new Foo()`) | Records are auto-constructed from Data. Don't use `new` for on-chain types (except ledger types like `Address`, `Credential`). |
 | Exception throwing | Use `return false` or `Builtins.traceError()`. |
 | Arrays (other than `byte[]`) | Use `JulcList<T>`. |
 | Generics (user-defined) | Only built-in generics like `JulcList<T>`, `Optional<T>`, `JulcMap<K,V>`. |
 
-### 1.3 Method Ordering Rule
-
-JuLC uses a **single-pass compiler**. Methods must be defined **before** their callers.
-
-```
-Level 0: Leaf utilities (no internal dependencies)
-Level 1: Methods calling Level 0
-Level 2: Methods calling Level 0 + Level 1
-Level 3: Entrypoints (call everything above)
-```
 
 ---
 
@@ -59,7 +49,7 @@ Level 3: Entrypoints (call everything above)
 ### 2.1 Single Validator
 
 ```java
-@Validator
+@SpendingValidator
 public class MyValidator {
     @Param static byte[] ownerPkh;
 
@@ -70,7 +60,7 @@ public class MyValidator {
 }
 ```
 
-Specialized single-purpose annotations are also available: `@SpendingValidator`, `@MintingValidator`, `@WithdrawValidator`, `@CertifyingValidator`, `@VotingValidator`, `@ProposingValidator`.
+Single-purpose annotations: `@SpendingValidator`, `@MintingValidator`, `@WithdrawValidator`, `@CertifyingValidator`, `@VotingValidator`, `@ProposingValidator`. The generic `@Validator` annotation still exists for backward compatibility but is deprecated.
 
 ### 2.2 Multi-Validator (Multiple Entrypoints)
 
@@ -331,7 +321,7 @@ ValuesLib.eq(a, b)                                       // value a == b
 ValuesLib.isZero(value)                                  // all amounts are zero
 ```
 
-**Important**: Always use `ValuesLib.lovelaceOf(output.value())` instead of `output.value().lovelace()` — the latter causes "Unbound variable: compareTo" UPLC compilation error.
+**Important**: Use `value.lovelaceOf()` (instance method via named dispatch) or `ValuesLib.lovelaceOf(value)` (static call) — both work on-chain. Do **not** use `.lovelace()` (different method name, not registered for on-chain dispatch).
 
 ### 5.3 AddressLib — Address Inspection
 
@@ -549,7 +539,7 @@ Builtins.error()                            // Abort script
 | Type | Description |
 |------|-------------|
 | `ScriptContext` | Contains `txInfo()`, `redeemer()`, `scriptInfo()` |
-| `TxInfo` | Transaction fields: `inputs()`, `referenceInputs()`, `outputs()`, `fee()`, `mint()`, `signatories()`, `validRange()`, `withdrawals()`, `datums()` |
+| `TxInfo` | Transaction fields: `inputs()`, `referenceInputs()`, `outputs()`, `fee()`, `mint()`, `certificates()`, `withdrawals()`, `validRange()`, `signatories()`, `redeemers()`, `datums()`, `txId()`, `votes()`, `proposalProcedures()`, `currentTreasuryAmount()`, `treasuryDonation()` |
 | `TxInInfo` | Input: `outRef()` (TxOutRef), `resolved()` (TxOut) |
 | `TxOut` | Output: `address()`, `value()`, `datum()`, `referenceScript()` |
 | `TxOutRef` | UTXO reference: `txId()`, `index()` |
@@ -999,11 +989,9 @@ julcVersion = '0.1.0-904996b-SNAPSHOT'  // Updates with each julc commit
 
 After changes in the julc repo, update the version to match the new commit hash.
 
-### 10.8 Nested While Loops / Function Calls in While Accumulators
+### 10.8 Nested While Loops
 
-Nested `while` loops or calling a function with a `while` loop from inside another `while` loop causes MkCons type mismatch errors.
-
-**Fix**: Extract inner loops into separate methods, or use recursive step functions for the outer iteration.
+Nested loops (while-in-while, for-each-in-for-each, mixed) are supported. The compiler assigns unique names to each loop function to prevent collisions. For deeply nested while+while patterns with many accumulators, consider extracting inner loops into separate methods for readability.
 
 ---
 

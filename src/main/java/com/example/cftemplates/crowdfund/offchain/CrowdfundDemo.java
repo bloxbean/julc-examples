@@ -17,7 +17,7 @@ import java.math.BigInteger;
 
 /**
  * Off-chain demo for CfCrowdfundValidator.
- * Sets up a crowdfund, donates, then beneficiary withdraws after deadline.
+ * 3-step flow: Initialize → Donate (via ScriptTx) → Withdraw.
  */
 public class CrowdfundDemo {
 
@@ -27,16 +27,19 @@ public class CrowdfundDemo {
             System.exit(1);
         }
 
-        var donor = new Account(Networks.testnet());
+        var donor1 = new Account(Networks.testnet());
+        var donor2 = new Account(Networks.testnet());
         var beneficiary = new Account(Networks.testnet());
         byte[] beneficiaryPkh = beneficiary.hdKeyPair().getPublicKey().getKeyHash();
-        byte[] donorPkh = donor.hdKeyPair().getPublicKey().getKeyHash();
+        byte[] donor1Pkh = donor1.hdKeyPair().getPublicKey().getKeyHash();
+        byte[] donor2Pkh = donor2.hdKeyPair().getPublicKey().getKeyHash();
 
         // Deadline in the past so beneficiary can withdraw immediately
         BigInteger deadline = BigInteger.valueOf(System.currentTimeMillis() - 60_000);
         BigInteger goal = BigInteger.valueOf(5_000_000); // 5 ADA in lovelace
 
-        YaciHelper.topUp(donor.baseAddress(), 1000);
+        YaciHelper.topUp(donor1.baseAddress(), 1000);
+        YaciHelper.topUp(donor2.baseAddress(), 1000);
         YaciHelper.topUp(beneficiary.baseAddress(), 1000);
 
         var script = JulcScriptLoader.load(CfCrowdfundValidator.class,
@@ -48,48 +51,75 @@ public class CrowdfundDemo {
         var backend = YaciHelper.createBackendService();
         var quickTx = new QuickTxBuilder(backend);
 
-        // Step 1: Donate 10 ADA (lock at script with wallets datum)
-        System.out.println("Step 1: Donating 10 ADA...");
-        // CrowdfundDatum = Constr(0, [Map{donor -> 10_000_000}])
-        var walletsMap = MapPlutusData.builder()
-                .map(java.util.Map.of(
-                        (com.bloxbean.cardano.client.plutus.spec.PlutusData) new BytesPlutusData(donorPkh),
-                        (com.bloxbean.cardano.client.plutus.spec.PlutusData) BigIntPlutusData.of(10_000_000)))
-                .build();
-        var datum = ConstrPlutusData.builder()
+        // Step 1: Initialize — donor1 sends 5 ADA to script (plain Tx, no script execution)
+        System.out.println("Step 1: Initializing crowdfund with 5 ADA from donor1...");
+        var initWallets = MapPlutusData.builder().build();
+        initWallets.put(new BytesPlutusData(donor1Pkh), BigIntPlutusData.of(5_000_000));
+        var initDatum = ConstrPlutusData.builder()
                 .alternative(0)
-                .data(ListPlutusData.of(walletsMap))
+                .data(ListPlutusData.of(initWallets))
                 .build();
 
-        var lockTx = new Tx()
-                .payToContract(scriptAddr, Amount.ada(10), datum)
-                .from(donor.baseAddress());
+        var initTx = new Tx()
+                .payToContract(scriptAddr, Amount.ada(5), initDatum)
+                .from(donor1.baseAddress());
 
-        var lockResult = quickTx.compose(lockTx)
-                .withSigner(SignerProviders.signerFrom(donor))
+        var initResult = quickTx.compose(initTx)
+                .withSigner(SignerProviders.signerFrom(donor1))
                 .complete();
 
-        if (!lockResult.isSuccessful()) {
-            System.out.println("Donate failed: " + lockResult);
+        if (!initResult.isSuccessful()) {
+            System.out.println("Initialize failed: " + initResult);
             System.exit(1);
         }
-        var lockTxHash = lockResult.getValue();
-        YaciHelper.waitForConfirmation(backend, lockTxHash);
-        System.out.println("Donated! Tx: " + lockTxHash);
+        var initTxHash = initResult.getValue();
+        YaciHelper.waitForConfirmation(backend, initTxHash);
+        System.out.println("Initialized! Tx: " + initTxHash);
 
-        // Step 2: Beneficiary withdraws (deadline passed, goal met)
-        System.out.println("Step 2: Beneficiary withdrawing...");
-        var scriptUtxo = YaciHelper.findUtxo(backend, scriptAddr, lockTxHash);
+        // Step 2: Donate — donor2 donates 5 ADA via ScriptTx (spends existing UTXO, creates new one)
+        System.out.println("Step 2: Donor2 donating 5 ADA via ScriptTx...");
+        var scriptUtxo = YaciHelper.findUtxo(backend, scriptAddr, initTxHash);
 
-        // Withdraw = tag 1 (Donate=0, Withdraw=1, Reclaim=2)
-        var redeemer = ConstrPlutusData.of(1);
+        // Updated datum: both donors in the wallets map
+        var updatedWallets = MapPlutusData.builder().build();
+        updatedWallets.put(new BytesPlutusData(donor1Pkh), BigIntPlutusData.of(5_000_000));
+        updatedWallets.put(new BytesPlutusData(donor2Pkh), BigIntPlutusData.of(5_000_000));
+        var updatedDatum = ConstrPlutusData.builder()
+                .alternative(0)
+                .data(ListPlutusData.of(updatedWallets))
+                .build();
+
+        // DONATE redeemer = tag 0
+        var donateTx = new ScriptTx()
+                .collectFrom(scriptUtxo, ConstrPlutusData.of(0))
+                .payToContract(scriptAddr, Amount.ada(10), updatedDatum)
+                .attachSpendingValidator(script);
+
+        var donateResult = quickTx.compose(donateTx)
+                .withSigner(SignerProviders.signerFrom(donor2))
+                .feePayer(donor2.baseAddress())
+                .collateralPayer(donor2.baseAddress())
+                .complete();
+
+        if (!donateResult.isSuccessful()) {
+            System.out.println("Donate failed: " + donateResult);
+            System.exit(1);
+        }
+        var donateTxHash = donateResult.getValue();
+        YaciHelper.waitForConfirmation(backend, donateTxHash);
+        System.out.println("Donated! Tx: " + donateTxHash);
+
+        // Step 3: Beneficiary withdraws (deadline passed, goal met with 10 ADA > 5 ADA goal)
+        System.out.println("Step 3: Beneficiary withdrawing...");
+        var withdrawUtxo = YaciHelper.findUtxo(backend, scriptAddr, donateTxHash);
 
         var latestBlock = backend.getBlockService().getLatestBlock();
         long currentSlot = latestBlock.getValue().getSlot();
 
+        // WITHDRAW redeemer = tag 1
         var withdrawTx = new ScriptTx()
-                .collectFrom(scriptUtxo, redeemer)
-                .payToAddress(beneficiary.baseAddress(), Amount.ada(5))
+                .collectFrom(withdrawUtxo, ConstrPlutusData.of(1))
+                .payToAddress(beneficiary.baseAddress(), Amount.ada(10))
                 .attachSpendingValidator(script);
 
         var withdrawResult = quickTx.compose(withdrawTx)

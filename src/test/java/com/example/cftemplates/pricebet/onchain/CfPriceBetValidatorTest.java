@@ -153,11 +153,8 @@ class CfPriceBetValidatorTest extends ContractTest {
     @Nested
     class WinTests {
 
-        // NOTE: JulcMap.get() returns Optional at UPLC level, but extractPriceMapField
-        // assigns the result directly to BigInteger, causing a type mismatch in compareTo.
-
         @Test
-        void win_priceAboveTarget_oracleMapOptionalMismatch_fails() throws Exception {
+        void win_priceAboveTarget_valid_passes() throws Exception {
             var compiled = compileValidator(CfPriceBetValidator.class);
             var program = compiled.program();
 
@@ -205,8 +202,8 @@ class CfPriceBetValidatorTest extends ContractTest {
                     .buildPlutusData();
 
             var result = evaluate(program, ctx);
-            // Fails: JulcMap.get() returns Optional at UPLC, compareTo receives Constr not Integer
-            assertFailure(result);
+            assertSuccess(result);
+            logBudget("win_priceAboveTarget_valid_passes", result);
         }
 
         @Test

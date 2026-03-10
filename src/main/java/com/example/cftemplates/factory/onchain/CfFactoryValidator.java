@@ -99,10 +99,8 @@ public class CfFactoryValidator {
 
     static boolean listContainsBytes(JulcList<byte[]> list, byte[] target) {
         boolean found = false;
-        PlutusData targetData = Builtins.bData(target);
         for (var item : list) {
-            PlutusData itemData = (PlutusData)(Object) item;
-            if (Builtins.equalsData(itemData, targetData)) {
+            if (item.equals(target)) {
                 found = true;
                 break;
             }

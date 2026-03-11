@@ -29,7 +29,7 @@ public class CfProductValidator {
     @Param static byte[] factoryMarkerPolicy;
     @Param static byte[] productId;
 
-    record ProductDatum(byte[] tag) {}
+    public record ProductDatum(byte[] tag) {}
 
     @Entrypoint(purpose = Purpose.MINT)
     public static boolean mint(PlutusData redeemer, ScriptContext ctx) {

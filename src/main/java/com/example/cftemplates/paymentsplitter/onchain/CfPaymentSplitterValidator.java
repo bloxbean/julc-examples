@@ -25,8 +25,8 @@ public class CfPaymentSplitterValidator {
 
     @Param static JulcList<byte[]> payees;
 
-    record SplitterDatum(byte[] owner) {}
-    record SplitterRedeemer(byte[] message) {}
+    public record SplitterDatum(byte[] owner) {}
+    public record SplitterRedeemer(byte[] message) {}
 
     @Entrypoint
     public static boolean validate(Optional<PlutusData> datum, PlutusData redeemer, ScriptContext ctx) {

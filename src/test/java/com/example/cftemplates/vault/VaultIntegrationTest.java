@@ -15,6 +15,7 @@ import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.vault.onchain.CfVaultValidator;
 import com.example.offchain.YaciHelper;
 import org.junit.jupiter.api.*;
@@ -92,7 +93,7 @@ class VaultIntegrationTest {
         var scriptUtxo = YaciHelper.findUtxo(backend, scriptAddr, lockTxHash);
 
         // Finalize = tag 1
-        var redeemer = ConstrPlutusData.of(1);
+        var redeemer = PlutusDataAdapter.convert(new CfVaultValidator.Finalize());
 
         var latestBlock = backend.getBlockService().getLatestBlock();
         long currentSlot = latestBlock.getValue().getSlot();

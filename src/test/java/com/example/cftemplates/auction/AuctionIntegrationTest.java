@@ -6,11 +6,8 @@ import com.bloxbean.cardano.client.api.model.Amount;
 import com.bloxbean.cardano.client.backend.api.BackendService;
 import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
-import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.PlutusV3Script;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
@@ -60,16 +57,9 @@ class AuctionIntegrationTest {
         long expiration = System.currentTimeMillis() - 60_000;
 
         // AuctionDatum(seller, emptyBidder, bid=0, expiration, emptyPolicy, emptyName)
-        var auctionDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(sellerPkh),
-                        new BytesPlutusData(new byte[0]),
-                        BigIntPlutusData.of(0),
-                        BigIntPlutusData.of(expiration),
-                        new BytesPlutusData(new byte[0]),
-                        new BytesPlutusData(new byte[0])))
-                .build();
+        var auctionDatum = PlutusDataAdapter.convert(new CfAuctionValidator.AuctionDatum(
+                sellerPkh, new byte[0], java.math.BigInteger.ZERO,
+                java.math.BigInteger.valueOf(expiration), new byte[0], new byte[0]));
 
         var lockTx = new Tx()
                 .payToContract(scriptAddr, Amount.ada(5), auctionDatum)
@@ -93,8 +83,8 @@ class AuctionIntegrationTest {
 
         var scriptUtxo = YaciHelper.findUtxo(backend, scriptAddr, lockTxHash);
 
-        // End = Constr(2)
-        var endRedeemer = ConstrPlutusData.of(2);
+        // End = tag 2
+        var endRedeemer = PlutusDataAdapter.convert(new CfAuctionValidator.End());
 
         var latestBlock = backend.getBlockService().getLatestBlock();
         long currentSlot = latestBlock.getValue().getSlot();

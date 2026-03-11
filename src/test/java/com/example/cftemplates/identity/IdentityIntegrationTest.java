@@ -6,15 +6,13 @@ import com.bloxbean.cardano.client.api.model.Amount;
 import com.bloxbean.cardano.client.backend.api.BackendService;
 import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
-import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.PlutusV3Script;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
+import com.bloxbean.cardano.julc.core.types.JulcList;
 import com.example.cftemplates.identity.onchain.CfIdentityValidator;
 import com.example.offchain.YaciHelper;
 import org.junit.jupiter.api.*;
@@ -64,13 +62,9 @@ class IdentityIntegrationTest {
     void step1_createIdentity() throws Exception {
         assumeTrue(yaciAvailable, "Yaci DevKit not available");
 
-        // IdentityDatum = Constr(0, [owner, []])
-        var identityDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(ownerPkh),
-                        ListPlutusData.of()))
-                .build();
+        // IdentityDatum(owner, empty delegates)
+        var identityDatum = PlutusDataAdapter.convert(new CfIdentityValidator.IdentityDatum(
+                ownerPkh, JulcList.empty()));
 
         var createTx = new Tx()
                 .payToContract(scriptAddr, Amount.lovelace(lockValue), identityDatum)
@@ -94,28 +88,13 @@ class IdentityIntegrationTest {
 
         var scriptUtxo = YaciHelper.findUtxo(backend, scriptAddr, createTxHash);
 
-        // AddDelegate = Constr(1, [delegatePkh, expires])
-        var addRedeemer = ConstrPlutusData.builder()
-                .alternative(1)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(delegatePkh),
-                        BigIntPlutusData.of(expires)))
-                .build();
+        // AddDelegate = tag 1
+        var addRedeemer = PlutusDataAdapter.convert(new CfIdentityValidator.AddDelegate(
+                delegatePkh, expires));
 
-        // Delegate = Constr(0, [key, expires])
-        var delegateEntry = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(delegatePkh),
-                        BigIntPlutusData.of(expires)))
-                .build();
-
-        var newDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(ownerPkh),
-                        ListPlutusData.of(delegateEntry)))
-                .build();
+        // New datum with delegate added
+        var newDatum = PlutusDataAdapter.convert(new CfIdentityValidator.IdentityDatum(
+                ownerPkh, JulcList.of(new CfIdentityValidator.Delegate(delegatePkh, expires))));
 
         var addTx = new ScriptTx()
                 .collectFrom(scriptUtxo, addRedeemer)
@@ -149,19 +128,12 @@ class IdentityIntegrationTest {
 
         var activeUtxo = YaciHelper.findUtxo(backend, scriptAddr, addTxHash);
 
-        // RemoveDelegate = Constr(2, [delegatePkh])
-        var removeRedeemer = ConstrPlutusData.builder()
-                .alternative(2)
-                .data(ListPlutusData.of(new BytesPlutusData(delegatePkh)))
-                .build();
+        // RemoveDelegate = tag 2
+        var removeRedeemer = PlutusDataAdapter.convert(new CfIdentityValidator.RemoveDelegate(delegatePkh));
 
         // Back to empty delegates
-        var removedDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(ownerPkh),
-                        ListPlutusData.of()))
-                .build();
+        var removedDatum = PlutusDataAdapter.convert(new CfIdentityValidator.IdentityDatum(
+                ownerPkh, JulcList.empty()));
 
         var removeTx = new ScriptTx()
                 .collectFrom(activeUtxo, removeRedeemer)

@@ -31,13 +31,13 @@ import java.util.Optional;
 @MultiValidator
 public class CfAuctionValidator {
 
-    record AuctionDatum(byte[] seller, byte[] highestBidder, BigInteger highestBid,
+    public record AuctionDatum(byte[] seller, byte[] highestBidder, BigInteger highestBid,
                         BigInteger expiration, byte[] assetPolicy, byte[] assetName) {}
 
-    sealed interface AuctionAction permits Bid, Withdraw, End {}
-    record Bid() implements AuctionAction {}
-    record Withdraw() implements AuctionAction {}
-    record End() implements AuctionAction {}
+    public sealed interface AuctionAction permits Bid, Withdraw, End {}
+    public record Bid() implements AuctionAction {}
+    public record Withdraw() implements AuctionAction {}
+    public record End() implements AuctionAction {}
 
     @Entrypoint(purpose = Purpose.MINT)
     public static boolean mint(PlutusData redeemer, ScriptContext ctx) {

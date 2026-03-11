@@ -28,11 +28,11 @@ import java.util.Optional;
 @MultiValidator
 public class CfBetValidator {
 
-    record BetDatum(byte[] player1, byte[] player2, byte[] oracle, BigInteger expiration) {}
+    public record BetDatum(byte[] player1, byte[] player2, byte[] oracle, BigInteger expiration) {}
 
-    sealed interface BetAction permits Join, AnnounceWinner {}
-    record Join() implements BetAction {}
-    record AnnounceWinner(byte[] winner) implements BetAction {}
+    public sealed interface BetAction permits Join, AnnounceWinner {}
+    public record Join() implements BetAction {}
+    public record AnnounceWinner(byte[] winner) implements BetAction {}
 
     @Entrypoint(purpose = Purpose.MINT)
     public static boolean mint(PlutusData redeemer, ScriptContext ctx) {

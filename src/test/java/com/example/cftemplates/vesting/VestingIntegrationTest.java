@@ -6,15 +6,13 @@ import com.bloxbean.cardano.client.api.model.Amount;
 import com.bloxbean.cardano.client.backend.api.BackendService;
 import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
-import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.PlutusV3Script;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.vesting.onchain.CfVestingValidator;
 import com.example.offchain.YaciHelper;
 import org.junit.jupiter.api.*;
@@ -65,13 +63,8 @@ class VestingIntegrationTest {
         byte[] ownerPkh = owner.hdKeyPair().getPublicKey().getKeyHash();
         byte[] beneficiaryPkh = beneficiary.hdKeyPair().getPublicKey().getKeyHash();
 
-        var datum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        BigIntPlutusData.of(lockUntil),
-                        new BytesPlutusData(ownerPkh),
-                        new BytesPlutusData(beneficiaryPkh)))
-                .build();
+        var datum = PlutusDataAdapter.convert(new CfVestingValidator.VestingDatum(
+                lockUntil, ownerPkh, beneficiaryPkh));
 
         var lockTx = new Tx()
                 .payToContract(scriptAddr, Amount.ada(10), datum)

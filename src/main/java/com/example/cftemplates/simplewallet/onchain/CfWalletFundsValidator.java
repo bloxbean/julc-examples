@@ -29,11 +29,11 @@ public class CfWalletFundsValidator {
     @Param static byte[] walletPolicyId;
 
     // PaymentIntent must match CfSimpleWalletValidator's record layout
-    record PaymentIntent(PlutusData recipient, BigInteger lovelaceAmt, byte[] data) {}
+    public record PaymentIntent(PlutusData recipient, BigInteger lovelaceAmt, byte[] data) {}
 
-    sealed interface FundsAction permits ExecuteTx, WithdrawFunds {}
-    record ExecuteTx() implements FundsAction {}
-    record WithdrawFunds() implements FundsAction {}
+    public sealed interface FundsAction permits ExecuteTx, WithdrawFunds {}
+    public record ExecuteTx() implements FundsAction {}
+    public record WithdrawFunds() implements FundsAction {}
 
     @Entrypoint(purpose = Purpose.SPEND)
     public static boolean spend(Optional<PlutusData> datum, FundsAction redeemer, ScriptContext ctx) {

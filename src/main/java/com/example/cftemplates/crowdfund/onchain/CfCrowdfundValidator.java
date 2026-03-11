@@ -33,12 +33,12 @@ public class CfCrowdfundValidator {
     @Param static BigInteger goal;
     @Param static BigInteger deadline;
 
-    record CrowdfundDatum(JulcMap<byte[], BigInteger> wallets) {}
+    public record CrowdfundDatum(JulcMap<byte[], BigInteger> wallets) {}
 
-    sealed interface CrowdfundAction permits Donate, Withdraw, Reclaim {}
-    record Donate() implements CrowdfundAction {}
-    record Withdraw() implements CrowdfundAction {}
-    record Reclaim() implements CrowdfundAction {}
+    public sealed interface CrowdfundAction permits Donate, Withdraw, Reclaim {}
+    public record Donate() implements CrowdfundAction {}
+    public record Withdraw() implements CrowdfundAction {}
+    public record Reclaim() implements CrowdfundAction {}
 
     @Entrypoint(purpose = Purpose.SPEND)
     public static boolean validate(Optional<CrowdfundDatum> datumOpt, CrowdfundAction redeemer, ScriptContext ctx) {

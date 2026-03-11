@@ -19,7 +19,7 @@ import java.math.BigInteger;
 @SpendingValidator
 public class CfVestingValidator {
 
-    record VestingDatum(BigInteger lockUntil, byte[] owner, byte[] beneficiary) {}
+    public record VestingDatum(BigInteger lockUntil, byte[] owner, byte[] beneficiary) {}
 
     @Entrypoint
     public static boolean validate(VestingDatum datum, PlutusData redeemer, ScriptContext ctx) {

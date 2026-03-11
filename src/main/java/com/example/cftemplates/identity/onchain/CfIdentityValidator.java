@@ -28,14 +28,14 @@ import java.util.Optional;
 @MultiValidator
 public class CfIdentityValidator {
 
-    record Delegate(byte[] key, BigInteger expires) {}
+    public record Delegate(byte[] key, BigInteger expires) {}
 
-    record IdentityDatum(byte[] owner, JulcList<Delegate> delegates) {}
+    public record IdentityDatum(byte[] owner, JulcList<Delegate> delegates) {}
 
-    sealed interface IdentityAction permits TransferOwner, AddDelegate, RemoveDelegate {}
-    record TransferOwner(byte[] newOwner) implements IdentityAction {}
-    record AddDelegate(byte[] delegate, BigInteger expires) implements IdentityAction {}
-    record RemoveDelegate(byte[] delegate) implements IdentityAction {}
+    public sealed interface IdentityAction permits TransferOwner, AddDelegate, RemoveDelegate {}
+    public record TransferOwner(byte[] newOwner) implements IdentityAction {}
+    public record AddDelegate(byte[] delegate, BigInteger expires) implements IdentityAction {}
+    public record RemoveDelegate(byte[] delegate) implements IdentityAction {}
 
     @Entrypoint(purpose = Purpose.SPEND)
     public static boolean validate(Optional<PlutusData> datum, IdentityAction redeemer, ScriptContext ctx) {

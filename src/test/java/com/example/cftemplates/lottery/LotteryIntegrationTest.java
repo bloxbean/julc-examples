@@ -7,15 +7,13 @@ import com.bloxbean.cardano.client.backend.api.BackendService;
 import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.PlutusV3Script;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.lottery.onchain.CfLotteryValidator;
 import com.example.offchain.YaciHelper;
 import org.bouncycastle.crypto.digests.Blake2bDigest;
@@ -99,22 +97,12 @@ class LotteryIntegrationTest {
         var tokenNameHex = "0x" + HexUtil.encodeHexString(tokenName);
         var lotteryAsset = new Asset(tokenNameHex, BigInteger.ONE);
 
-        // Create = Constr(0) mint redeemer
-        var createRedeemer = ConstrPlutusData.of(0);
+        // Create = tag 0 (mint redeemer)
+        var createRedeemer = PlutusDataAdapter.convert(new CfLotteryValidator.Create());
 
         // LotteryDatum(player1, player2, commit1, commit2, n1=empty, n2=empty, endReveal, delta)
-        var lotteryDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(player1Pkh),
-                        new BytesPlutusData(player2Pkh),
-                        new BytesPlutusData(commit1),
-                        new BytesPlutusData(commit2),
-                        new BytesPlutusData(new byte[0]),  // n1 not yet revealed
-                        new BytesPlutusData(new byte[0]),  // n2 not yet revealed
-                        BigIntPlutusData.of(endReveal),
-                        BigIntPlutusData.of(delta)))
-                .build();
+        var lotteryDatum = PlutusDataAdapter.convert(new CfLotteryValidator.LotteryDatum(
+                player1Pkh, player2Pkh, commit1, commit2, new byte[0], new byte[0], endReveal, delta));
 
         // Mint token to script with datum (ADA funded by feePayer)
         var mintTx = new ScriptTx()
@@ -143,25 +131,12 @@ class LotteryIntegrationTest {
 
         var scriptUtxo = YaciHelper.findUtxo(backend, scriptAddr, createTxHash);
 
-        // Reveal1 = Constr(0, [n1]) spend redeemer
-        var reveal1Redeemer = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(new BytesPlutusData(n1)))
-                .build();
+        // Reveal1(n1) = tag 0 (spend redeemer)
+        var reveal1Redeemer = PlutusDataAdapter.convert(new CfLotteryValidator.Reveal1(n1));
 
         // Updated datum with n1 revealed
-        var updatedDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(player1Pkh),
-                        new BytesPlutusData(player2Pkh),
-                        new BytesPlutusData(commit1),
-                        new BytesPlutusData(commit2),
-                        new BytesPlutusData(n1),           // n1 now revealed
-                        new BytesPlutusData(new byte[0]),  // n2 still empty
-                        BigIntPlutusData.of(endReveal),
-                        BigIntPlutusData.of(delta)))
-                .build();
+        var updatedDatum = PlutusDataAdapter.convert(new CfLotteryValidator.LotteryDatum(
+                player1Pkh, player2Pkh, commit1, commit2, n1, new byte[0], endReveal, delta));
 
         // Continuing output: send back to script with updated datum and same value + token
         var tokenNameHex = "0x" + HexUtil.encodeHexString(tokenName);
@@ -194,25 +169,12 @@ class LotteryIntegrationTest {
 
         var scriptUtxo = YaciHelper.findUtxo(backend, scriptAddr, reveal1TxHash);
 
-        // Reveal2 = Constr(1, [n2]) spend redeemer
-        var reveal2Redeemer = ConstrPlutusData.builder()
-                .alternative(1)
-                .data(ListPlutusData.of(new BytesPlutusData(n2)))
-                .build();
+        // Reveal2(n2) = tag 1 (spend redeemer)
+        var reveal2Redeemer = PlutusDataAdapter.convert(new CfLotteryValidator.Reveal2(n2));
 
         // Updated datum with both n1 and n2 revealed
-        var fullyRevealedDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(player1Pkh),
-                        new BytesPlutusData(player2Pkh),
-                        new BytesPlutusData(commit1),
-                        new BytesPlutusData(commit2),
-                        new BytesPlutusData(n1),
-                        new BytesPlutusData(n2),           // n2 now revealed
-                        BigIntPlutusData.of(endReveal),
-                        BigIntPlutusData.of(delta)))
-                .build();
+        var fullyRevealedDatum = PlutusDataAdapter.convert(new CfLotteryValidator.LotteryDatum(
+                player1Pkh, player2Pkh, commit1, commit2, n1, n2, endReveal, delta));
 
         // Continuing output: send back to script with both revealed
         var reveal2Tx = new ScriptTx()

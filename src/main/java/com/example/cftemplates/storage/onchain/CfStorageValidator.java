@@ -35,14 +35,14 @@ public class CfStorageValidator {
     @Param static BigInteger seedIndex;
 
     // Snapshot type: Daily = tag 0, Monthly = tag 1
-    sealed interface SnapshotType permits Daily, Monthly {}
-    record Daily() implements SnapshotType {}
-    record Monthly() implements SnapshotType {}
+    public sealed interface SnapshotType permits Daily, Monthly {}
+    public record Daily() implements SnapshotType {}
+    public record Monthly() implements SnapshotType {}
 
-    record RegistryDatum(byte[] snapshotId, SnapshotType snapshotType,
+    public record RegistryDatum(byte[] snapshotId, SnapshotType snapshotType,
                          byte[] commitmentHash, BigInteger publishedAt) {}
 
-    record StorageMintRedeemer(byte[] snapshotId, SnapshotType snapshotType,
+    public record StorageMintRedeemer(byte[] snapshotId, SnapshotType snapshotType,
                                byte[] commitmentHash) {}
 
     @Entrypoint(purpose = Purpose.SPEND)

@@ -6,9 +6,7 @@ import com.bloxbean.cardano.client.api.model.Amount;
 import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
@@ -16,6 +14,7 @@ import com.bloxbean.cardano.client.crypto.Blake2bUtil;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.lottery.onchain.CfLotteryValidator;
 import com.example.offchain.YaciHelper;
 
@@ -78,22 +77,12 @@ public class LotteryDemo {
         String lotteryTokenUnit = policyId + HexUtil.encodeHexString(tokenNameBytes);
         var lotteryAsset = new Asset(tokenNameHex, BigInteger.ONE);
 
-        // Create = Constr(0) (mint redeemer)
-        var createRedeemer = ConstrPlutusData.of(0);
+        // Create = tag 0 (mint redeemer)
+        var createRedeemer = PlutusDataAdapter.convert(new CfLotteryValidator.Create());
 
         // LotteryDatum(p1, p2, commit1, commit2, n1=empty, n2=empty, endReveal, delta)
-        var lotteryDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(p1Pkh),
-                        new BytesPlutusData(p2Pkh),
-                        new BytesPlutusData(commit1),
-                        new BytesPlutusData(commit2),
-                        new BytesPlutusData(new byte[0]),   // n1 empty
-                        new BytesPlutusData(new byte[0]),   // n2 empty
-                        BigIntPlutusData.of(endReveal),
-                        BigIntPlutusData.of(delta)))
-                .build();
+        var lotteryDatum = PlutusDataAdapter.convert(new CfLotteryValidator.LotteryDatum(
+                p1Pkh, p2Pkh, commit1, commit2, new byte[0], new byte[0], endReveal, delta));
 
         // Mint token and lock at script with datum in a single output
         var mintTx = new ScriptTx()
@@ -121,25 +110,12 @@ public class LotteryDemo {
         System.out.println("Step 2: Player1 revealing...");
         var gameUtxo = YaciHelper.findUtxo(backend, scriptAddr, createTxHash);
 
-        // Reveal1(n1=secret1) = Constr(0, [secret1])
-        var reveal1Redeemer = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(new BytesPlutusData(secret1)))
-                .build();
+        // Reveal1(n1=secret1) = tag 0
+        var reveal1Redeemer = PlutusDataAdapter.convert(new CfLotteryValidator.Reveal1(secret1));
 
         // Updated datum with n1 revealed
-        var reveal1Datum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(p1Pkh),
-                        new BytesPlutusData(p2Pkh),
-                        new BytesPlutusData(commit1),
-                        new BytesPlutusData(commit2),
-                        new BytesPlutusData(secret1),       // n1 = revealed
-                        new BytesPlutusData(new byte[0]),   // n2 still empty
-                        BigIntPlutusData.of(endReveal),
-                        BigIntPlutusData.of(delta)))
-                .build();
+        var reveal1Datum = PlutusDataAdapter.convert(new CfLotteryValidator.LotteryDatum(
+                p1Pkh, p2Pkh, commit1, commit2, secret1, new byte[0], endReveal, delta));
 
         var reveal1Tx = new ScriptTx()
                 .collectFrom(gameUtxo, reveal1Redeemer)
@@ -168,25 +144,12 @@ public class LotteryDemo {
         System.out.println("Step 3a: Player2 revealing...");
         var reveal1Utxo = YaciHelper.findUtxo(backend, scriptAddr, reveal1TxHash);
 
-        // Reveal2(n2=secret2) = Constr(1, [secret2])
-        var reveal2Redeemer = ConstrPlutusData.builder()
-                .alternative(1)
-                .data(ListPlutusData.of(new BytesPlutusData(secret2)))
-                .build();
+        // Reveal2(n2=secret2) = tag 1
+        var reveal2Redeemer = PlutusDataAdapter.convert(new CfLotteryValidator.Reveal2(secret2));
 
         // Updated datum with both revealed
-        var reveal2Datum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(p1Pkh),
-                        new BytesPlutusData(p2Pkh),
-                        new BytesPlutusData(commit1),
-                        new BytesPlutusData(commit2),
-                        new BytesPlutusData(secret1),       // n1 revealed
-                        new BytesPlutusData(secret2),       // n2 revealed
-                        BigIntPlutusData.of(endReveal),
-                        BigIntPlutusData.of(delta)))
-                .build();
+        var reveal2Datum = PlutusDataAdapter.convert(new CfLotteryValidator.LotteryDatum(
+                p1Pkh, p2Pkh, commit1, commit2, secret1, secret2, endReveal, delta));
 
         var reveal2Tx = new ScriptTx()
                 .collectFrom(reveal1Utxo, reveal2Redeemer)
@@ -224,11 +187,11 @@ public class LotteryDemo {
         byte[] winnerPkh = player1Wins ? p1Pkh : p2Pkh;
         System.out.println("Winner: " + (player1Wins ? "Player1" : "Player2"));
 
-        // Settle = Constr(4) — 5th variant: Reveal1(0), Reveal2(1), Timeout1(2), Timeout2(3), Settle(4)
-        var settleRedeemer = ConstrPlutusData.of(4);
+        // Settle = tag 4
+        var settleRedeemer = PlutusDataAdapter.convert(new CfLotteryValidator.Settle());
 
-        // Burn token: BurnToken = Constr(1) (mint redeemer)
-        var burnRedeemer = ConstrPlutusData.of(1);
+        // Burn token: BurnToken = tag 1 (mint redeemer)
+        var burnRedeemer = PlutusDataAdapter.convert(new CfLotteryValidator.BurnToken());
         var burnAsset = new Asset(tokenNameHex, BigInteger.ONE.negate());
 
         var settleTx = new ScriptTx()

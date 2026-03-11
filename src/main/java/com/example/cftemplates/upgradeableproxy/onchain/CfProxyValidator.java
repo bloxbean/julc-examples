@@ -38,15 +38,15 @@ public class CfProxyValidator {
     @Param static byte[] seedTxHash;
     @Param static BigInteger seedIndex;
 
-    record ProxyDatum(byte[] scriptPointer, byte[] scriptOwner) {}
+    public record ProxyDatum(byte[] scriptPointer, byte[] scriptOwner) {}
 
-    sealed interface ProxyMintAction permits Init, ProxyMint {}
-    record Init() implements ProxyMintAction {}
-    record ProxyMint() implements ProxyMintAction {}
+    public sealed interface ProxyMintAction permits Init, ProxyMint {}
+    public record Init() implements ProxyMintAction {}
+    public record ProxyMint() implements ProxyMintAction {}
 
-    sealed interface ProxySpendAction permits Update, ProxySpend {}
-    record Update() implements ProxySpendAction {}
-    record ProxySpend() implements ProxySpendAction {}
+    public sealed interface ProxySpendAction permits Update, ProxySpend {}
+    public record Update() implements ProxySpendAction {}
+    public record ProxySpend() implements ProxySpendAction {}
 
     @Entrypoint(purpose = Purpose.MINT)
     public static boolean mint(ProxyMintAction redeemer, ScriptContext ctx) {

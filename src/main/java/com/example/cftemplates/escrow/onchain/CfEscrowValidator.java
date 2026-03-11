@@ -32,16 +32,16 @@ import java.util.Optional;
 public class CfEscrowValidator {
 
     // Datum: sealed with Initiation (tag 0) and ActiveEscrow (tag 1)
-    sealed interface EscrowDatum permits Initiation, ActiveEscrow {}
-    record Initiation(byte[] initiator, BigInteger initiatorAmount) implements EscrowDatum {}
-    record ActiveEscrow(byte[] initiator, BigInteger initiatorAmount,
+    public sealed interface EscrowDatum permits Initiation, ActiveEscrow {}
+    public record Initiation(byte[] initiator, BigInteger initiatorAmount) implements EscrowDatum {}
+    public record ActiveEscrow(byte[] initiator, BigInteger initiatorAmount,
                         byte[] recipient, BigInteger recipientAmount) implements EscrowDatum {}
 
     // Redeemer
-    sealed interface EscrowAction permits RecipientDeposit, CancelTrade, CompleteTrade {}
-    record RecipientDeposit(byte[] recipient, BigInteger recipientAmount) implements EscrowAction {}
-    record CancelTrade() implements EscrowAction {}
-    record CompleteTrade() implements EscrowAction {}
+    public sealed interface EscrowAction permits RecipientDeposit, CancelTrade, CompleteTrade {}
+    public record RecipientDeposit(byte[] recipient, BigInteger recipientAmount) implements EscrowAction {}
+    public record CancelTrade() implements EscrowAction {}
+    public record CompleteTrade() implements EscrowAction {}
 
     @Entrypoint(purpose = Purpose.SPEND)
     public static boolean validate(Optional<PlutusData> datum, EscrowAction redeemer, ScriptContext ctx) {

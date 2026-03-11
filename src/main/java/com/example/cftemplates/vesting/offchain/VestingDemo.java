@@ -5,14 +5,12 @@ import com.bloxbean.cardano.client.address.AddressProvider;
 import com.bloxbean.cardano.client.api.model.Amount;
 import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
-import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.vesting.onchain.CfVestingValidator;
 import com.example.offchain.YaciHelper;
 
@@ -49,13 +47,8 @@ public class VestingDemo {
 
         // Step 1: Owner locks 10 ADA with vesting datum
         System.out.println("Step 1: Owner locking 10 ADA with vesting datum...");
-        var datum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        BigIntPlutusData.of(lockUntil),
-                        new BytesPlutusData(ownerPkh),
-                        new BytesPlutusData(beneficiaryPkh)))
-                .build();
+        var datum = PlutusDataAdapter.convert(new CfVestingValidator.VestingDatum(
+                lockUntil, ownerPkh, beneficiaryPkh));
 
         var lockTx = new Tx()
                 .payToContract(scriptAddr, Amount.ada(10), datum)

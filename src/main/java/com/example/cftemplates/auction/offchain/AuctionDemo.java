@@ -5,16 +5,12 @@ import com.bloxbean.cardano.client.address.AddressProvider;
 import com.bloxbean.cardano.client.api.model.Amount;
 import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
-import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
-import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.auction.onchain.CfAuctionValidator;
 import com.example.offchain.YaciHelper;
 
@@ -69,18 +65,10 @@ public class AuctionDemo {
         System.out.println("Step 1: Seller creating auction (minting auction NFT)...");
 
         // AuctionDatum(seller, emptyBidder, bid=0, expiration, assetPolicy, assetName)
-        var auctionDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(sellerPkh),
-                        new BytesPlutusData(new byte[0]),   // no bidder
-                        BigIntPlutusData.of(startingBid),
-                        BigIntPlutusData.of(expiration),
-                        new BytesPlutusData(policyIdBytes),  // asset policy = own policy
-                        new BytesPlutusData(assetNameBytes)))// asset name
-                .build();
+        var auctionDatum = PlutusDataAdapter.convert(new CfAuctionValidator.AuctionDatum(
+                sellerPkh, new byte[0], startingBid, expiration, policyIdBytes, assetNameBytes));
 
-        var mintRedeemer = ConstrPlutusData.of(0);
+        var mintRedeemer = PlutusDataAdapter.convert(new CfAuctionValidator.Bid());
         var createTx = new ScriptTx()
                 .mintAsset(script, List.of(auctionAsset), mintRedeemer, scriptAddr, auctionDatum);
 
@@ -110,20 +98,12 @@ public class AuctionDemo {
 
         BigInteger bidAmount = BigInteger.valueOf(5_000_000); // 5 ADA
 
-        // Bid = Constr(0) (first variant in sealed interface)
-        var bidRedeemer = ConstrPlutusData.of(0);
+        // Bid = tag 0
+        var bidRedeemer = PlutusDataAdapter.convert(new CfAuctionValidator.Bid());
 
         // Updated datum with bidder and bid amount
-        var bidDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(sellerPkh),
-                        new BytesPlutusData(bidderPkh),     // new highest bidder
-                        BigIntPlutusData.of(bidAmount),      // new highest bid
-                        BigIntPlutusData.of(expiration),
-                        new BytesPlutusData(policyIdBytes),
-                        new BytesPlutusData(assetNameBytes)))
-                .build();
+        var bidDatum = PlutusDataAdapter.convert(new CfAuctionValidator.AuctionDatum(
+                sellerPkh, bidderPkh, bidAmount, expiration, policyIdBytes, assetNameBytes));
 
         var bidTx = new ScriptTx()
                 .collectFrom(scriptUtxo, bidRedeemer)
@@ -163,8 +143,8 @@ public class AuctionDemo {
         System.out.println("Step 3: Ending auction (winner gets NFT, seller gets ADA)...");
         var auctionUtxo = YaciHelper.findUtxo(backend, scriptAddr, bidTxHash);
 
-        // End = Constr(2) (third variant: Bid=0, Withdraw=1, End=2)
-        var endRedeemer = ConstrPlutusData.of(2);
+        // End = tag 2
+        var endRedeemer = PlutusDataAdapter.convert(new CfAuctionValidator.End());
 
         latestBlock = backend.getBlockService().getLatestBlock();
         currentSlot = latestBlock.getValue().getSlot();

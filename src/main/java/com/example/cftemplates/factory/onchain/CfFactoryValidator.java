@@ -35,9 +35,9 @@ public class CfFactoryValidator {
     @Param static byte[] seedTxHash;
     @Param static BigInteger seedIndex;
 
-    record FactoryDatum(JulcList<byte[]> products) {}
+    public record FactoryDatum(JulcList<byte[]> products) {}
 
-    record CreateProduct(byte[] productPolicyId, byte[] productId) {}
+    public record CreateProduct(byte[] productPolicyId, byte[] productId) {}
 
     static final byte[] FACTORY_MARKER = "FACTORY_MARKER".getBytes();
 

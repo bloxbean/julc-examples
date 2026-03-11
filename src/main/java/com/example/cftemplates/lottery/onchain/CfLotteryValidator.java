@@ -33,23 +33,23 @@ public class CfLotteryValidator {
 
     @Param static BigInteger gameIndex;
 
-    record LotteryDatum(byte[] player1, byte[] player2,
+    public record LotteryDatum(byte[] player1, byte[] player2,
                         byte[] commit1, byte[] commit2,
                         byte[] n1, byte[] n2,
                         BigInteger endReveal, BigInteger delta) {}
 
     // Mint redeemer
-    sealed interface MintAction permits Create, BurnToken {}
-    record Create() implements MintAction {}
-    record BurnToken() implements MintAction {}
+    public sealed interface MintAction permits Create, BurnToken {}
+    public record Create() implements MintAction {}
+    public record BurnToken() implements MintAction {}
 
     // Spend redeemer
-    sealed interface LotteryAction permits Reveal1, Reveal2, Timeout1, Timeout2, Settle {}
-    record Reveal1(byte[] n1) implements LotteryAction {}
-    record Reveal2(byte[] n2) implements LotteryAction {}
-    record Timeout1() implements LotteryAction {}
-    record Timeout2() implements LotteryAction {}
-    record Settle() implements LotteryAction {}
+    public sealed interface LotteryAction permits Reveal1, Reveal2, Timeout1, Timeout2, Settle {}
+    public record Reveal1(byte[] n1) implements LotteryAction {}
+    public record Reveal2(byte[] n2) implements LotteryAction {}
+    public record Timeout1() implements LotteryAction {}
+    public record Timeout2() implements LotteryAction {}
+    public record Settle() implements LotteryAction {}
 
     @Entrypoint(purpose = Purpose.MINT)
     public static boolean mint(MintAction redeemer, ScriptContext ctx) {

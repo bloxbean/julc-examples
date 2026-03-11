@@ -7,13 +7,12 @@ import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.storage.onchain.CfStorageValidator;
 import com.example.offchain.YaciHelper;
 
@@ -71,25 +70,13 @@ public class StorageDemo {
 
         var asset = new Asset(assetNameHex, BigInteger.ONE);
 
-        // StorageMintRedeemer(snapshotId, snapshotType=Daily=Constr(0), commitmentHash)
-        var dailyType = ConstrPlutusData.of(0); // Daily = tag 0
-        var mintRedeemer = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(snapshotId),
-                        dailyType,
-                        new BytesPlutusData(commitmentHash)))
-                .build();
+        // StorageMintRedeemer(snapshotId, snapshotType=Daily, commitmentHash)
+        var mintRedeemer = PlutusDataAdapter.convert(new CfStorageValidator.StorageMintRedeemer(
+                snapshotId, new CfStorageValidator.Daily(), commitmentHash));
 
         // RegistryDatum(snapshotId, snapshotType=Daily, commitmentHash, publishedAt)
-        var registryDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(snapshotId),
-                        dailyType,
-                        new BytesPlutusData(commitmentHash),
-                        BigIntPlutusData.of(publishedAt)))
-                .build();
+        var registryDatum = PlutusDataAdapter.convert(new CfStorageValidator.RegistryDatum(
+                snapshotId, new CfStorageValidator.Daily(), commitmentHash, publishedAt));
 
         var mintTx = new ScriptTx()
                 .collectFrom(seedUtxo)  // consume seed UTxO for one-shot

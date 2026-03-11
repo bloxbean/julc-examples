@@ -12,6 +12,7 @@ import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.PlutusScript;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
@@ -105,7 +106,7 @@ public class SimpleWalletDemo {
         BigInteger paymentAmount = BigInteger.valueOf(20_000_000);
         String intentTokenHex = "0x" + HexUtil.encodeHexString("INTENT_MARKER".getBytes());
         Asset intentAsset = new Asset(intentTokenHex, BigInteger.ONE);
-        ConstrPlutusData mintRedeemer = ConstrPlutusData.of(0);
+        var mintRedeemer = PlutusDataAdapter.convert(new CfSimpleWalletValidator.MintIntent());
 
         byte[] recipientPkh = recipient.hdKeyPair().getPublicKey().getKeyHash();
         ConstrPlutusData recipientCredential = ConstrPlutusData.builder()
@@ -121,12 +122,11 @@ public class SimpleWalletDemo {
                 .data(ListPlutusData.of(recipientCredential, noStake))
                 .build();
 
-        ConstrPlutusData paymentIntent = ConstrPlutusData.builder()
+        // PaymentIntent.recipient is JuLC PlutusData (not CCL ConstrPlutusData),
+        // so we construct the full datum manually.
+        var paymentIntent = ConstrPlutusData.builder()
                 .alternative(0)
-                .data(ListPlutusData.of(
-                        recipientAddrData,
-                        BigIntPlutusData.of(paymentAmount),
-                        new BytesPlutusData(new byte[0])))
+                .data(ListPlutusData.of(recipientAddrData, BigIntPlutusData.of(paymentAmount), new BytesPlutusData(new byte[0])))
                 .build();
 
         ScriptTx mintIntentTx = new ScriptTx()

@@ -6,15 +6,12 @@ import com.bloxbean.cardano.client.api.model.Amount;
 import com.bloxbean.cardano.client.backend.api.BackendService;
 import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
-import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.PlutusV3Script;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.pricebet.onchain.CfPriceBetValidator;
 import com.example.offchain.YaciHelper;
 import org.junit.jupiter.api.*;
@@ -67,17 +64,9 @@ class PriceBetIntegrationTest {
         // Deadline in the past so Timeout is valid immediately
         BigInteger deadline = BigInteger.valueOf(System.currentTimeMillis() - 60_000);
 
-        // PriceBetDatum(owner, player=empty, oracleVkh=empty, targetRate=100, deadline, betAmount)
-        var priceBetDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(ownerPkh),
-                        new BytesPlutusData(new byte[0]),   // no player yet
-                        new BytesPlutusData(new byte[28]),  // dummy oracle vkh
-                        BigIntPlutusData.of(BigInteger.valueOf(100)), // target rate
-                        BigIntPlutusData.of(deadline),
-                        BigIntPlutusData.of(betAmount)))
-                .build();
+        // PriceBetDatum(owner, player(empty), oracleVkh, targetRate, deadline, betAmount)
+        var priceBetDatum = PlutusDataAdapter.convert(new CfPriceBetValidator.PriceBetDatum(
+                ownerPkh, new byte[0], new byte[28], BigInteger.valueOf(100), deadline, betAmount));
 
         var lockTx = new Tx()
                 .payToContract(scriptAddr, Amount.lovelace(betAmount), priceBetDatum)
@@ -101,8 +90,8 @@ class PriceBetIntegrationTest {
 
         var scriptUtxo = YaciHelper.findUtxo(backend, scriptAddr, lockTxHash);
 
-        // Timeout = Constr(2) (sealed interface tag: Join=0, Win=1, Timeout=2)
-        var timeoutRedeemer = ConstrPlutusData.of(2);
+        // Timeout = tag 2
+        var timeoutRedeemer = PlutusDataAdapter.convert(new CfPriceBetValidator.Timeout());
 
         var latestBlock = backend.getBlockService().getLatestBlock();
         long currentSlot = latestBlock.getValue().getSlot();

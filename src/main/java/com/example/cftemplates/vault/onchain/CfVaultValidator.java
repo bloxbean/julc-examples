@@ -30,12 +30,12 @@ public class CfVaultValidator {
     @Param static byte[] owner;
     @Param static BigInteger waitTime;
 
-    record WithdrawDatum(BigInteger lockTime) {}
+    public record WithdrawDatum(BigInteger lockTime) {}
 
-    sealed interface VaultAction permits Withdraw, Finalize, Cancel {}
-    record Withdraw() implements VaultAction {}
-    record Finalize() implements VaultAction {}
-    record Cancel() implements VaultAction {}
+    public sealed interface VaultAction permits Withdraw, Finalize, Cancel {}
+    public record Withdraw() implements VaultAction {}
+    public record Finalize() implements VaultAction {}
+    public record Cancel() implements VaultAction {}
 
     @Entrypoint(purpose = Purpose.SPEND)
     public static boolean validate(Optional<WithdrawDatum> datum, VaultAction redeemer, ScriptContext ctx) {

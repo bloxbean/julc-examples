@@ -6,11 +6,8 @@ import com.bloxbean.cardano.client.api.model.Amount;
 import com.bloxbean.cardano.client.backend.api.BackendService;
 import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
-import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.PlutusV3Script;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
@@ -64,13 +61,9 @@ class EscrowIntegrationTest {
     void step1_initiatorLocks() throws Exception {
         assumeTrue(yaciAvailable, "Yaci DevKit not available");
 
-        // Initiation datum (tag 0) = Constr(0, [initiatorPkh, initiatorAmt])
-        var initiationDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(initiatorPkh),
-                        BigIntPlutusData.of(initiatorAmt)))
-                .build();
+        // Initiation datum (tag 0)
+        var initiationDatum = PlutusDataAdapter.convert(new CfEscrowValidator.Initiation(
+                initiatorPkh, initiatorAmt));
 
         var lockTx = new Tx()
                 .payToContract(scriptAddr, Amount.lovelace(initiatorAmt), initiationDatum)
@@ -94,23 +87,13 @@ class EscrowIntegrationTest {
 
         var scriptUtxo = YaciHelper.findUtxo(backend, scriptAddr, lockTxHash);
 
-        // RecipientDeposit = Constr(0, [recipientPkh, recipientAmt])
-        var depositRedeemer = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(recipientPkh),
-                        BigIntPlutusData.of(recipientAmt)))
-                .build();
+        // RecipientDeposit = tag 0
+        var depositRedeemer = PlutusDataAdapter.convert(new CfEscrowValidator.RecipientDeposit(
+                recipientPkh, recipientAmt));
 
         // ActiveEscrow datum (tag 1)
-        var activeEscrowDatum = ConstrPlutusData.builder()
-                .alternative(1)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(initiatorPkh),
-                        BigIntPlutusData.of(initiatorAmt),
-                        new BytesPlutusData(recipientPkh),
-                        BigIntPlutusData.of(recipientAmt)))
-                .build();
+        var activeEscrowDatum = PlutusDataAdapter.convert(new CfEscrowValidator.ActiveEscrow(
+                initiatorPkh, initiatorAmt, recipientPkh, recipientAmt));
 
         var depositTx = new ScriptTx()
                 .collectFrom(scriptUtxo, depositRedeemer)
@@ -137,8 +120,8 @@ class EscrowIntegrationTest {
 
         var activeUtxo = YaciHelper.findUtxo(backend, scriptAddr, depositTxHash);
 
-        // CompleteTrade = Constr(2)
-        var completeRedeemer = ConstrPlutusData.of(2);
+        // CompleteTrade = tag 2
+        var completeRedeemer = PlutusDataAdapter.convert(new CfEscrowValidator.CompleteTrade());
 
         var completeTx = new ScriptTx()
                 .collectFrom(activeUtxo, completeRedeemer)

@@ -30,13 +30,13 @@ import java.util.Optional;
 @MultiValidator
 public class CfPriceBetValidator {
 
-    record PriceBetDatum(byte[] owner, byte[] player, byte[] oracleVkh,
+    public record PriceBetDatum(byte[] owner, byte[] player, byte[] oracleVkh,
                          BigInteger targetRate, BigInteger deadline, BigInteger betAmount) {}
 
-    sealed interface PriceBetAction permits Join, Win, Timeout {}
-    record Join() implements PriceBetAction {}
-    record Win() implements PriceBetAction {}
-    record Timeout() implements PriceBetAction {}
+    public sealed interface PriceBetAction permits Join, Win, Timeout {}
+    public record Join() implements PriceBetAction {}
+    public record Win() implements PriceBetAction {}
+    public record Timeout() implements PriceBetAction {}
 
     @Entrypoint(purpose = Purpose.SPEND)
     public static boolean spend(Optional<PlutusData> datum, PriceBetAction redeemer, ScriptContext ctx) {

@@ -8,12 +8,13 @@ import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
+import com.bloxbean.cardano.julc.core.types.JulcList;
 import com.example.cftemplates.factory.onchain.CfFactoryValidator;
 import com.example.cftemplates.factory.onchain.CfProductValidator;
 import com.example.offchain.YaciHelper;
@@ -68,11 +69,7 @@ public class FactoryDemo {
         var factoryMintRedeemer = ConstrPlutusData.of(0);
 
         // FactoryDatum(products=[]) — empty products list
-        var emptyProductsList = ListPlutusData.of();
-        var factoryDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(emptyProductsList))
-                .build();
+        var factoryDatum = PlutusDataAdapter.convert(new CfFactoryValidator.FactoryDatum(JulcList.empty()));
 
         var mintTx = new ScriptTx()
                 .collectFrom(seedUtxo)  // consume seed for one-shot
@@ -112,29 +109,20 @@ public class FactoryDemo {
 
         var factoryUtxo = YaciHelper.findUtxo(backend, factoryScriptAddr, mintTxHash);
 
-        // CreateProduct redeemer = Constr(0, [productPolicyId, productId])
-        var createProductRedeemer = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(productPolicyBytes),
-                        new BytesPlutusData(productId)))
-                .build();
+        // CreateProduct redeemer
+        var createProductRedeemer = PlutusDataAdapter.convert(new CfFactoryValidator.CreateProduct(
+                productPolicyBytes, productId));
 
         // Updated FactoryDatum with product added
-        var updatedProductsList = ListPlutusData.of(new BytesPlutusData(productPolicyBytes));
-        var updatedFactoryDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(updatedProductsList))
-                .build();
+        var updatedFactoryDatum = PlutusDataAdapter.convert(new CfFactoryValidator.FactoryDatum(
+                JulcList.of(productPolicyBytes)));
 
         // Product token
         var productAsset = new Asset(productIdHex, BigInteger.ONE);
 
         // ProductDatum(tag)
-        var productDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(new BytesPlutusData("product-001-tag".getBytes())))
-                .build();
+        var productDatum = PlutusDataAdapter.convert(new CfProductValidator.ProductDatum(
+                "product-001-tag".getBytes()));
 
         // Product mint redeemer (unused)
         var productMintRedeemer = ConstrPlutusData.of(0);

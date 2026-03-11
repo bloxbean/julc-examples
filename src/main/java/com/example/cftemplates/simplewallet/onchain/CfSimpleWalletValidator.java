@@ -32,11 +32,11 @@ public class CfSimpleWalletValidator {
 
     @Param static byte[] owner;
 
-    record PaymentIntent(PlutusData recipient, BigInteger lovelaceAmt, byte[] data) {}
+    public record PaymentIntent(PlutusData recipient, BigInteger lovelaceAmt, byte[] data) {}
 
-    sealed interface WalletAction permits MintIntent, BurnIntent {}
-    record MintIntent() implements WalletAction {}
-    record BurnIntent() implements WalletAction {}
+    public sealed interface WalletAction permits MintIntent, BurnIntent {}
+    public record MintIntent() implements WalletAction {}
+    public record BurnIntent() implements WalletAction {}
 
     @Entrypoint(purpose = Purpose.MINT)
     public static boolean mint(WalletAction redeemer, ScriptContext ctx) {

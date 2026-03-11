@@ -5,11 +5,14 @@ import com.bloxbean.cardano.client.address.AddressProvider;
 import com.bloxbean.cardano.client.api.model.Amount;
 import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
-import com.bloxbean.cardano.client.plutus.spec.*;
+import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
+import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
+import com.bloxbean.cardano.julc.core.types.JulcMap;
 import com.example.cftemplates.crowdfund.onchain.CfCrowdfundValidator;
 import com.example.offchain.YaciHelper;
 
@@ -53,12 +56,8 @@ public class CrowdfundDemo {
 
         // Step 1: Initialize — donor1 sends 5 ADA to script (plain Tx, no script execution)
         System.out.println("Step 1: Initializing crowdfund with 5 ADA from donor1...");
-        var initWallets = MapPlutusData.builder().build();
-        initWallets.put(new BytesPlutusData(donor1Pkh), BigIntPlutusData.of(5_000_000));
-        var initDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(initWallets))
-                .build();
+        JulcMap<byte[], BigInteger> initWallets = JulcMap.of(donor1Pkh, BigInteger.valueOf(5_000_000));
+        var initDatum = PlutusDataAdapter.convert(new CfCrowdfundValidator.CrowdfundDatum(initWallets));
 
         var initTx = new Tx()
                 .payToContract(scriptAddr, Amount.ada(5), initDatum)
@@ -81,17 +80,14 @@ public class CrowdfundDemo {
         var scriptUtxo = YaciHelper.findUtxo(backend, scriptAddr, initTxHash);
 
         // Updated datum: both donors in the wallets map
-        var updatedWallets = MapPlutusData.builder().build();
-        updatedWallets.put(new BytesPlutusData(donor1Pkh), BigIntPlutusData.of(5_000_000));
-        updatedWallets.put(new BytesPlutusData(donor2Pkh), BigIntPlutusData.of(5_000_000));
-        var updatedDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(updatedWallets))
-                .build();
+        JulcMap<byte[], BigInteger> updatedWallets = JulcMap.of(
+                donor1Pkh, BigInteger.valueOf(5_000_000),
+                donor2Pkh, BigInteger.valueOf(5_000_000));
+        var updatedDatum = PlutusDataAdapter.convert(new CfCrowdfundValidator.CrowdfundDatum(updatedWallets));
 
         // DONATE redeemer = tag 0
         var donateTx = new ScriptTx()
-                .collectFrom(scriptUtxo, ConstrPlutusData.of(0))
+                .collectFrom(scriptUtxo, PlutusDataAdapter.convert(new CfCrowdfundValidator.Donate()))
                 .payToContract(scriptAddr, Amount.ada(10), updatedDatum)
                 .attachSpendingValidator(script);
 
@@ -118,7 +114,7 @@ public class CrowdfundDemo {
 
         // WITHDRAW redeemer = tag 1
         var withdrawTx = new ScriptTx()
-                .collectFrom(withdrawUtxo, ConstrPlutusData.of(1))
+                .collectFrom(withdrawUtxo, PlutusDataAdapter.convert(new CfCrowdfundValidator.Withdraw()))
                 .payToAddress(beneficiary.baseAddress(), Amount.ada(10))
                 .attachSpendingValidator(script);
 

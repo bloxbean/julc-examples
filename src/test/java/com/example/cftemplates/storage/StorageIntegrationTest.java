@@ -9,8 +9,6 @@ import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.PlutusV3Script;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
@@ -18,6 +16,7 @@ import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.storage.onchain.CfStorageValidator;
 import com.example.offchain.YaciHelper;
 import org.junit.jupiter.api.*;
@@ -95,31 +94,14 @@ class StorageIntegrationTest {
         var assetHex = "0x" + HexUtil.encodeHexString(assetName);
         var nftAsset = new Asset(assetHex, BigInteger.ONE);
 
-        // StorageMintRedeemer = Constr(0, [snapshotId, snapshotType=Daily, commitmentHash])
-        // Daily = Constr(0, [])
-        var dailyType = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of())
-                .build();
+        // StorageMintRedeemer(snapshotId, snapshotType=Daily, commitmentHash)
+        var mintRedeemer = PlutusDataAdapter.convert(new CfStorageValidator.StorageMintRedeemer(
+                snapshotId, new CfStorageValidator.Daily(), commitmentHash));
 
-        var mintRedeemer = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(snapshotId),
-                        dailyType,
-                        new BytesPlutusData(commitmentHash)))
-                .build();
-
-        // RegistryDatum = Constr(0, [snapshotId, snapshotType, commitmentHash, publishedAt])
+        // RegistryDatum(snapshotId, snapshotType=Daily, commitmentHash, publishedAt)
         BigInteger publishedAt = BigInteger.valueOf(System.currentTimeMillis());
-        var registryDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(snapshotId),
-                        dailyType,
-                        new BytesPlutusData(commitmentHash),
-                        BigIntPlutusData.of(publishedAt)))
-                .build();
+        var registryDatum = PlutusDataAdapter.convert(new CfStorageValidator.RegistryDatum(
+                snapshotId, new CfStorageValidator.Daily(), commitmentHash, publishedAt));
 
         // Lock ADA + NFT at script address with RegistryDatum
         var lockTx = new Tx()

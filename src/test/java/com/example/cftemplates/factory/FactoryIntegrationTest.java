@@ -10,8 +10,9 @@ import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.PlutusV3Script;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
+import com.bloxbean.cardano.julc.core.types.JulcList;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
@@ -107,11 +108,8 @@ class FactoryIntegrationTest {
         // Mint redeemer (PlutusData, any value - factory mint just needs seed consumed + owner sig)
         var mintRedeemer = ConstrPlutusData.of(0);
 
-        // FactoryDatum = Constr(0, [products=empty list])
-        var factoryDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(ListPlutusData.of()))
-                .build();
+        // FactoryDatum(products=[])
+        var factoryDatum = PlutusDataAdapter.convert(new CfFactoryValidator.FactoryDatum(JulcList.empty()));
 
         // Mint factory marker and send to script address with datum
         var mintTx = new ScriptTx()
@@ -140,21 +138,13 @@ class FactoryIntegrationTest {
 
         var factoryUtxo = YaciHelper.findUtxo(backend, factoryScriptAddr, mintTxHash);
 
-        // CreateProduct spend redeemer = Constr(0, [productPolicyId, productId])
-        var createProductRedeemer = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(productPolicyId),
-                        new BytesPlutusData(productId)))
-                .build();
+        // CreateProduct spend redeemer
+        var createProductRedeemer = PlutusDataAdapter.convert(new CfFactoryValidator.CreateProduct(
+                productPolicyId, productId));
 
         // Updated FactoryDatum with new product in list
-        // FactoryDatum = Constr(0, [products=[productPolicyId]])
-        var updatedFactoryDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        ListPlutusData.of(new BytesPlutusData(productPolicyId))))
-                .build();
+        var updatedFactoryDatum = PlutusDataAdapter.convert(new CfFactoryValidator.FactoryDatum(
+                JulcList.of(productPolicyId)));
 
         // Product token
         var productTokenNameHex = "0x" + HexUtil.encodeHexString(productId);
@@ -163,11 +153,9 @@ class FactoryIntegrationTest {
         // Product mint redeemer (PlutusData)
         var productMintRedeemer = ConstrPlutusData.of(0);
 
-        // ProductDatum = Constr(0, [tag])
-        var productDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(new BytesPlutusData("product-tag".getBytes())))
-                .build();
+        // ProductDatum(tag)
+        var productDatum = PlutusDataAdapter.convert(new CfProductValidator.ProductDatum(
+                "product-tag".getBytes()));
 
         // Factory continuing output: factory token + updated datum
         var factoryTokenNameHex = "0x" + HexUtil.encodeHexString(factoryTokenName);

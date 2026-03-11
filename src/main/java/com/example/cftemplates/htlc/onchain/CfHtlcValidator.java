@@ -33,9 +33,9 @@ public class CfHtlcValidator {
     @Param
     static byte[] owner;
 
-    sealed interface HtlcAction permits Guess, Withdraw {}
-    record Guess(byte[] answer) implements HtlcAction {}
-    record Withdraw() implements HtlcAction {}
+    public sealed interface HtlcAction permits Guess, Withdraw {}
+    public record Guess(byte[] answer) implements HtlcAction {}
+    public record Withdraw() implements HtlcAction {}
 
     @Entrypoint
     public static boolean validate(Optional<PlutusData> datum, HtlcAction redeemer, ScriptContext ctx) {

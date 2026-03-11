@@ -9,14 +9,13 @@ import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.PlutusV3Script;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.upgradeableproxy.onchain.CfProxyValidator;
 import com.example.cftemplates.upgradeableproxy.onchain.CfScriptLogicV1;
 import com.example.cftemplates.upgradeableproxy.onchain.CfScriptLogicV2;
@@ -107,16 +106,12 @@ class ProxyIntegrationTest {
         var tokenNameHex = "0x" + HexUtil.encodeHexString(stateTokenName);
         var stateAsset = new Asset(tokenNameHex, BigInteger.ONE);
 
-        // Init = Constr(0) mint redeemer
-        var initRedeemer = ConstrPlutusData.of(0);
+        // Init = tag 0 (mint redeemer)
+        var initRedeemer = PlutusDataAdapter.convert(new CfProxyValidator.Init());
 
-        // ProxyDatum = Constr(0, [scriptPointer=v1ScriptHash, scriptOwner=ownerPkh])
-        var proxyDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(v1ScriptHash),
-                        new BytesPlutusData(ownerPkh)))
-                .build();
+        // ProxyDatum(scriptPointer=v1ScriptHash, scriptOwner=ownerPkh)
+        var proxyDatum = PlutusDataAdapter.convert(new CfProxyValidator.ProxyDatum(
+                v1ScriptHash, ownerPkh));
 
         // Mint state token, consume seed, send to proxy script with datum
         var mintTx = new ScriptTx()
@@ -145,16 +140,12 @@ class ProxyIntegrationTest {
 
         var stateUtxo = YaciHelper.findUtxo(backend, proxyScriptAddr, initTxHash);
 
-        // Update = Constr(0) spend redeemer (sealed: Update=0, ProxySpend=1)
-        var updateRedeemer = ConstrPlutusData.of(0);
+        // Update = tag 0 (spend redeemer, sealed: Update=0, ProxySpend=1)
+        var updateRedeemer = PlutusDataAdapter.convert(new CfProxyValidator.Update());
 
         // New ProxyDatum pointing to V2
-        var newProxyDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(v2ScriptHash),
-                        new BytesPlutusData(ownerPkh)))
-                .build();
+        var newProxyDatum = PlutusDataAdapter.convert(new CfProxyValidator.ProxyDatum(
+                v2ScriptHash, ownerPkh));
 
         var proxyPolicyHex = HexUtil.encodeHexString(proxyPolicyId);
         var tokenNameHex = HexUtil.encodeHexString(stateTokenName);

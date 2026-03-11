@@ -5,16 +5,14 @@ import com.bloxbean.cardano.client.address.AddressProvider;
 import com.bloxbean.cardano.client.api.model.Amount;
 import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
-import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.bet.onchain.CfBetValidator;
 import com.example.offchain.YaciHelper;
 
@@ -70,14 +68,8 @@ public class BetDemo {
         var mintRedeemer = ConstrPlutusData.of(0);
 
         // BetDatum(player1, empty player2, oracle, expiration)
-        var betDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(player1Pkh),
-                        new BytesPlutusData(new byte[0]),  // no player2 yet
-                        new BytesPlutusData(oraclePkh),
-                        BigIntPlutusData.of(expiration)))
-                .build();
+        var betDatum = PlutusDataAdapter.convert(new CfBetValidator.BetDatum(
+                player1Pkh, new byte[0], oraclePkh, expiration));
 
         // Mint bet token and send betAmount + token to script address with datum
         String betTokenUnit = policyId + HexUtil.encodeHexString(tokenNameBytes);
@@ -111,18 +103,12 @@ public class BetDemo {
         System.out.println("Step 2: Player2 joining bet...");
         var scriptUtxo = YaciHelper.findUtxo(backend, scriptAddr, createTxHash);
 
-        // Join = Constr(0)
-        var joinRedeemer = ConstrPlutusData.of(0);
+        // Join = tag 0
+        var joinRedeemer = PlutusDataAdapter.convert(new CfBetValidator.Join());
 
         // Updated datum with player2
-        var joinedDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(player1Pkh),
-                        new BytesPlutusData(player2Pkh),
-                        new BytesPlutusData(oraclePkh),
-                        BigIntPlutusData.of(expiration)))
-                .build();
+        var joinedDatum = PlutusDataAdapter.convert(new CfBetValidator.BetDatum(
+                player1Pkh, player2Pkh, oraclePkh, expiration));
 
         var joinTx = new ScriptTx()
                 .collectFrom(scriptUtxo, joinRedeemer)
@@ -162,11 +148,8 @@ public class BetDemo {
         System.out.println("Step 3: Oracle announcing winner (player1)...");
         var activeUtxo = YaciHelper.findUtxo(backend, scriptAddr, joinTxHash);
 
-        // AnnounceWinner(player1) = Constr(1, [player1Pkh])
-        var announceRedeemer = ConstrPlutusData.builder()
-                .alternative(1)
-                .data(ListPlutusData.of(new BytesPlutusData(player1Pkh)))
-                .build();
+        // AnnounceWinner(player1) = tag 1
+        var announceRedeemer = PlutusDataAdapter.convert(new CfBetValidator.AnnounceWinner(player1Pkh));
 
         latestBlock = backend.getBlockService().getLatestBlock();
         currentSlot = latestBlock.getValue().getSlot();

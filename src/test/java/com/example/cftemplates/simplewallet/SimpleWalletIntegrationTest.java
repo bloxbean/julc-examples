@@ -17,6 +17,7 @@ import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.simplewallet.onchain.CfSimpleWalletValidator;
 import com.example.cftemplates.simplewallet.onchain.CfWalletFundsValidator;
 import com.example.offchain.YaciHelper;
@@ -86,8 +87,8 @@ class SimpleWalletIntegrationTest {
         var tokenNameHex = "0x" + HexUtil.encodeHexString(tokenName);
         var intentAsset = new Asset(tokenNameHex, BigInteger.ONE);
 
-        // MintIntent = Constr(0) (sealed: MintIntent=0, BurnIntent=1)
-        var mintRedeemer = ConstrPlutusData.of(0);
+        // MintIntent = tag 0 (sealed: MintIntent=0, BurnIntent=1)
+        var mintRedeemer = PlutusDataAdapter.convert(new CfSimpleWalletValidator.MintIntent());
 
         // PaymentIntent datum: Constr(0, [recipient_address_as_plutusdata, lovelaceAmt, data])
         // For the recipient address, we use the bech32 address bytes as PlutusData
@@ -107,13 +108,11 @@ class SimpleWalletIntegrationTest {
                                 .build()))
                 .build();
 
-        // PaymentIntent = Constr(0, [recipient_addr, lovelaceAmt, data])
+        // PaymentIntent(recipient, lovelaceAmt, data) — recipient is JuLC PlutusData,
+        // so we construct manually since recipientAddrData is CCL ConstrPlutusData.
         var paymentIntentDatum = ConstrPlutusData.builder()
                 .alternative(0)
-                .data(ListPlutusData.of(
-                        recipientAddrData,
-                        BigIntPlutusData.of(paymentAmount),
-                        new BytesPlutusData("test payment".getBytes())))
+                .data(ListPlutusData.of(recipientAddrData, BigIntPlutusData.of(paymentAmount), new BytesPlutusData("test payment".getBytes())))
                 .build();
 
         // Mint intent token and send to wallet script with datum
@@ -163,8 +162,8 @@ class SimpleWalletIntegrationTest {
         // Find the funds UTxO at the funds script address
         var fundsUtxo = YaciHelper.findUtxo(backend, fundsScriptAddr, fundsTxHash);
 
-        // ExecuteTx = Constr(0) for funds validator spend redeemer
-        var executeTxRedeemer = ConstrPlutusData.of(0);
+        // ExecuteTx = tag 0 for funds validator spend redeemer
+        var executeTxRedeemer = PlutusDataAdapter.convert(new CfWalletFundsValidator.ExecuteTx());
 
         // Spend redeemer for wallet script (any PlutusData, just needs owner signature)
         var walletSpendRedeemer = ConstrPlutusData.of(0);
@@ -173,8 +172,8 @@ class SimpleWalletIntegrationTest {
         var tokenNameHex = "0x" + HexUtil.encodeHexString(tokenName);
         var burnAsset = new Asset(tokenNameHex, BigInteger.ONE.negate());
 
-        // BurnIntent = Constr(1) for wallet mint redeemer
-        var burnRedeemer = ConstrPlutusData.of(1);
+        // BurnIntent = tag 1 for wallet mint redeemer
+        var burnRedeemer = PlutusDataAdapter.convert(new CfSimpleWalletValidator.BurnIntent());
 
         // Build the execute transaction:
         // 1. Collect from funds UTxO (ExecuteTx redeemer)

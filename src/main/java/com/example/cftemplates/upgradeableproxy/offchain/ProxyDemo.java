@@ -7,13 +7,12 @@ import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.upgradeableproxy.onchain.CfProxyValidator;
 import com.example.offchain.YaciHelper;
 
@@ -80,16 +79,12 @@ public class ProxyDemo {
 
         var stateAsset = new Asset(stateTokenHex, BigInteger.ONE);
 
-        // Init = Constr(0) (mint redeemer)
-        var initRedeemer = ConstrPlutusData.of(0);
+        // Init = tag 0 (mint redeemer)
+        var initRedeemer = PlutusDataAdapter.convert(new CfProxyValidator.Init());
 
         // ProxyDatum(scriptPointer, scriptOwner)
-        var proxyDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(scriptPointerV1),
-                        new BytesPlutusData(ownerPkh)))
-                .build();
+        var proxyDatum = PlutusDataAdapter.convert(new CfProxyValidator.ProxyDatum(
+                scriptPointerV1, ownerPkh));
 
         var mintTx = new ScriptTx()
                 .collectFrom(seedUtxo)  // consume seed for one-shot
@@ -120,16 +115,12 @@ public class ProxyDemo {
         byte[] scriptPointerV2 = new byte[28];
         System.arraycopy("v2-logic-script-hash-padding".getBytes(), 0, scriptPointerV2, 0, 28);
 
-        // Update = Constr(0) (spend redeemer)
-        var updateRedeemer = ConstrPlutusData.of(0);
+        // Update = tag 0 (spend redeemer)
+        var updateRedeemer = PlutusDataAdapter.convert(new CfProxyValidator.Update());
 
         // Updated ProxyDatum(newScriptPointer, sameOwner)
-        var updatedDatum = ConstrPlutusData.builder()
-                .alternative(0)
-                .data(ListPlutusData.of(
-                        new BytesPlutusData(scriptPointerV2),
-                        new BytesPlutusData(ownerPkh)))
-                .build();
+        var updatedDatum = PlutusDataAdapter.convert(new CfProxyValidator.ProxyDatum(
+                scriptPointerV2, ownerPkh));
 
         // Continuing output must include the state token
         var proxyPolicyHex = HexUtil.encodeHexString(proxyPolicyBytes);

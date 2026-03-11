@@ -8,6 +8,7 @@ import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
 import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
 import com.bloxbean.cardano.julc.stdlib.annotation.Param;
 import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
+import com.bloxbean.cardano.julc.core.types.AssetEntry;
 import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
 import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
 
@@ -50,17 +51,31 @@ public class CfTokenTransferValidator {
         return hasAsset && receiverSigned && noLeaks;
     }
 
+    // Check that no non-ADA tokens leak to non-script addresses (matches Aiken's
+    // without_lovelace check that verifies ALL non-ADA tokens stay at script address)
     static boolean checkNoTokenLeaks(JulcList<TxOut> outputs, Address scriptAddress) {
         boolean clean = true;
         for (var output : outputs) {
             if (!Builtins.equalsData(output.address(), scriptAddress)) {
-                if (ValuesLib.containsPolicy(output.value(), policy)) {
+                // Check for ANY non-ADA token in the output (not just the specific policy)
+                if (hasNonAdaTokens(output)) {
                     clean = false;
                     break;
                 }
             }
         }
         return clean;
+    }
+
+    static boolean hasNonAdaTokens(TxOut output) {
+        boolean found = false;
+        for (AssetEntry asset : ValuesLib.flattenTyped(output.value())) {
+            if (!asset.policyId().equals(Builtins.emptyByteString())) {
+                found = true;
+                break;
+            }
+        }
+        return found;
     }
 
 }

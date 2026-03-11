@@ -69,7 +69,7 @@ class CfSimpleWalletValidatorTest extends ContractTest {
             var policyId = new PolicyId(SCRIPT_HASH);
 
             // 1 INTENT token minted
-            var tokenName = new TokenName(new byte[]{0x49, 0x4E, 0x54}); // "INT"
+            var tokenName = new TokenName("INTENT_MARKER".getBytes()); // "INT"
             var mintValue = Value.singleton(policyId, tokenName, BigInteger.ONE);
 
             // PaymentIntent datum
@@ -104,7 +104,7 @@ class CfSimpleWalletValidatorTest extends ContractTest {
             var redeemer = PlutusData.constr(0);
             var policyId = new PolicyId(SCRIPT_HASH);
 
-            var tokenName = new TokenName(new byte[]{0x49, 0x4E, 0x54});
+            var tokenName = new TokenName("INTENT_MARKER".getBytes());
             var mintValue = Value.singleton(policyId, tokenName, BigInteger.ONE);
 
             var intentDatum = paymentIntentDatum(RECIPIENT, BigInteger.valueOf(5_000_000), new byte[0]);
@@ -172,7 +172,7 @@ class CfSimpleWalletValidatorTest extends ContractTest {
             var redeemer = PlutusData.constr(1);
             var policyId = new PolicyId(SCRIPT_HASH);
 
-            var tokenName = new TokenName(new byte[]{0x49, 0x4E, 0x54});
+            var tokenName = new TokenName("INTENT_MARKER".getBytes());
             // Burn: qty = -1
             var mintValue = Value.singleton(policyId, tokenName, BigInteger.ONE.negate());
 

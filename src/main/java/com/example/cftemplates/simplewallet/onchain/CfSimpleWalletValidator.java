@@ -23,6 +23,9 @@ import java.util.Optional;
  * Works with CfWalletFundsValidator which holds the actual funds.
  * <p>
  * Based on: cardano-template-and-ecosystem-monitoring/simple-wallet
+ * <p>
+ * NOTE: Combines what were separate Aiken scripts (wallet minting + intent spending)
+ * into a single JuLC @MultiValidator. Architecturally different but functionally equivalent.
  */
 @MultiValidator
 public class CfSimpleWalletValidator {
@@ -56,10 +59,12 @@ public class CfSimpleWalletValidator {
         return ContextsLib.signedBy(ctx.txInfo(), owner);
     }
 
+    static final byte[] INTENT_MARKER = "INTENT_MARKER".getBytes();
+
     static boolean handleMintIntent(TxInfo txInfo, byte[] policyBytes) {
-        // Exactly 1 INTENT token minted
-        BigInteger mintCount = ValuesLib.countTokensWithQty(txInfo.mint(), policyBytes, BigInteger.ONE);
-        boolean oneMinted = mintCount.compareTo(BigInteger.ONE) == 0;
+        // Exactly 1 INTENT_MARKER token minted
+        BigInteger qty = ValuesLib.assetOf(txInfo.mint(), policyBytes, INTENT_MARKER);
+        boolean oneMinted = qty.compareTo(BigInteger.ONE) == 0;
 
         // Output to own script (policy = script hash) with intent token and inline datum
         boolean validOutput = false;
@@ -81,8 +86,8 @@ public class CfSimpleWalletValidator {
     }
 
     static boolean handleBurnIntent(TxInfo txInfo, byte[] policyBytes) {
-        // Exactly 1 INTENT token burned
-        BigInteger burnCount = ValuesLib.countTokensWithQty(txInfo.mint(), policyBytes, BigInteger.ONE.negate());
-        return burnCount.compareTo(BigInteger.ONE) == 0;
+        // Exactly 1 INTENT_MARKER token burned
+        BigInteger burnQty = ValuesLib.assetOf(txInfo.mint(), policyBytes, INTENT_MARKER);
+        return burnQty.compareTo(BigInteger.ONE.negate()) == 0;
     }
 }

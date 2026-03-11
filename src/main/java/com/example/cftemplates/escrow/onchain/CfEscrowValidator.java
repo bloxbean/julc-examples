@@ -24,6 +24,9 @@ import java.util.Optional;
  * CompleteTrade: both sign, assets swapped.
  * <p>
  * Based on: cardano-template-and-ecosystem-monitoring/escrow
+ * <p>
+ * NOTE: Deliberate simplification — this JuLC port uses ADA-only escrow
+ * instead of Aiken's multi-asset variant. Functionally equivalent for demos.
  */
 @MultiValidator
 public class CfEscrowValidator {

@@ -39,7 +39,7 @@ class CfFactoryValidatorTest extends ContractTest {
             0, 0, 0, 0, 0, 0, 0, 0};
 
     static final byte[] PRODUCT_ID = new byte[]{0x50, 0x52, 0x4F, 0x44}; // "PROD"
-    static final byte[] MARKER_NAME = new byte[]{0x4D, 0x41, 0x52, 0x4B}; // "MARK"
+    static final byte[] MARKER_NAME = "FACTORY_MARKER".getBytes();
 
     @BeforeAll
     static void setup() {

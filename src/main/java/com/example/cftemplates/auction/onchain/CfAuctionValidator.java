@@ -24,6 +24,9 @@ import java.util.Optional;
  * END: after expiration, winner gets asset, seller gets ADA.
  * <p>
  * Based on: cardano-template-and-ecosystem-monitoring/auction
+ * <p>
+ * NOTE: BID refund check uses >= instead of Aiken's ==. This is a deliberate
+ * simplification — more permissive (allows over-refund), arguably safer.
  */
 @MultiValidator
 public class CfAuctionValidator {
@@ -96,12 +99,18 @@ public class CfAuctionValidator {
         boolean expirationUnchanged = newDatum.expiration().compareTo(currentDatum.expiration()) == 0;
         boolean valueNonDecreasing = outputLovelace.compareTo(inputLovelace) >= 0;
 
+        // Verify auctioned asset is present in input and continuing output
+        boolean inputHasAsset = ValuesLib.assetOf(ownInput.value(),
+                currentDatum.assetPolicy(), currentDatum.assetName()).compareTo(BigInteger.ZERO) > 0;
+        boolean outputHasAsset = ValuesLib.assetOf(continuingOutput.value(),
+                newDatum.assetPolicy(), newDatum.assetName()).compareTo(BigInteger.ZERO) > 0;
+
         // Check previous bidder refunded (if any)
         boolean refundOk = checkRefund(txInfo.outputs(), currentDatum.highestBidder(), currentDatum.highestBid());
 
         return notExpired && higherBid && bidderSigned && sellerUnchanged
                 && policyUnchanged && nameUnchanged && expirationUnchanged
-                && valueNonDecreasing && refundOk;
+                && valueNonDecreasing && inputHasAsset && outputHasAsset && refundOk;
     }
 
     static boolean checkRefund(JulcList<TxOut> outputs, byte[] prevBidder, BigInteger prevBid) {

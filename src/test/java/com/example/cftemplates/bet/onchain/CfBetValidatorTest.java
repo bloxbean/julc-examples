@@ -57,6 +57,11 @@ class CfBetValidatorTest extends ContractTest {
                 PlutusData.bytes(ORACLE), PlutusData.integer(EXPIRATION));
     }
 
+    static Value valueWithToken(BigInteger lovelace, byte[] policy, byte[] tokenName, BigInteger qty) {
+        return Value.lovelace(lovelace)
+                .merge(Value.singleton(new PolicyId(policy), new TokenName(tokenName), qty));
+    }
+
     @Nested
     class MintTests {
 
@@ -232,15 +237,19 @@ class CfBetValidatorTest extends ContractTest {
             var newDatum = betDatum(PLAYER1, PLAYER2);
 
             var spentRef = TestDataBuilder.randomTxOutRef_typed();
+            // Input with bet token (ADA-first ordering for lovelaceOf compatibility)
+            var inputValue = valueWithToken(BET_AMOUNT, SCRIPT_HASH, "BET".getBytes(), BigInteger.ONE);
             var spentInput = new TxInInfo(spentRef,
                     new TxOut(scriptAddress(),
-                            Value.lovelace(BET_AMOUNT),
+                            inputValue,
                             new OutputDatum.OutputDatumInline(datum),
                             Optional.empty()));
 
-            // Continuing output with doubled pot and updated datum
+            // Continuing output with doubled pot and bet token
+            var outputValue = valueWithToken(BET_AMOUNT.multiply(BigInteger.TWO),
+                    SCRIPT_HASH, "BET".getBytes(), BigInteger.ONE);
             var continuingOutput = new TxOut(scriptAddress(),
-                    Value.lovelace(BET_AMOUNT.multiply(BigInteger.TWO)),
+                    outputValue,
                     new OutputDatum.OutputDatumInline(newDatum),
                     Optional.empty());
 
@@ -258,6 +267,40 @@ class CfBetValidatorTest extends ContractTest {
         }
 
         @Test
+        void join_noBetToken_fails() throws Exception {
+            var compiled = compileValidator(CfBetValidator.class);
+            var program = compiled.program();
+
+            var datum = betDatum(PLAYER1, EMPTY_BYTES);
+            var redeemer = PlutusData.constr(0);
+            var newDatum = betDatum(PLAYER1, PLAYER2);
+
+            var spentRef = TestDataBuilder.randomTxOutRef_typed();
+            // Input WITHOUT bet token (just lovelace)
+            var spentInput = new TxInInfo(spentRef,
+                    new TxOut(scriptAddress(),
+                            Value.lovelace(BET_AMOUNT),
+                            new OutputDatum.OutputDatumInline(datum),
+                            Optional.empty()));
+
+            var continuingOutput = new TxOut(scriptAddress(),
+                    Value.lovelace(BET_AMOUNT.multiply(BigInteger.TWO)),
+                    new OutputDatum.OutputDatumInline(newDatum),
+                    Optional.empty());
+
+            var ctx = spendingContext(spentRef, datum)
+                    .redeemer(redeemer)
+                    .input(spentInput)
+                    .output(continuingOutput)
+                    .signer(PLAYER2)
+                    .validRange(Interval.before(EXPIRATION))
+                    .buildPlutusData();
+
+            var result = evaluate(program, ctx);
+            assertFailure(result);
+        }
+
+        @Test
         void join_sameAsPlayer1_fails() throws Exception {
             var compiled = compileValidator(CfBetValidator.class);
             var program = compiled.program();
@@ -267,14 +310,18 @@ class CfBetValidatorTest extends ContractTest {
             var newDatum = betDatum(PLAYER1, PLAYER1); // same player
 
             var spentRef = TestDataBuilder.randomTxOutRef_typed();
+            // Input with bet token (ADA-first ordering)
+            var inputValue = valueWithToken(BET_AMOUNT, SCRIPT_HASH, "BET".getBytes(), BigInteger.ONE);
             var spentInput = new TxInInfo(spentRef,
                     new TxOut(scriptAddress(),
-                            Value.lovelace(BET_AMOUNT),
+                            inputValue,
                             new OutputDatum.OutputDatumInline(datum),
                             Optional.empty()));
 
+            var outputValue = valueWithToken(BET_AMOUNT.multiply(BigInteger.TWO),
+                    SCRIPT_HASH, "BET".getBytes(), BigInteger.ONE);
             var continuingOutput = new TxOut(scriptAddress(),
-                    Value.lovelace(BET_AMOUNT.multiply(BigInteger.TWO)),
+                    outputValue,
                     new OutputDatum.OutputDatumInline(newDatum),
                     Optional.empty());
 

@@ -27,6 +27,10 @@ import java.util.Optional;
  *   State token must NOT be in this input. Reference input with state token required.
  * <p>
  * Based on: cardano-template-and-ecosystem-monitoring/upgradable-proxy
+ * <p>
+ * NOTE: Redeemer tag ordering may differ from Aiken. JuLC sealed interface
+ * ordering determines constructor tags, which is internally consistent
+ * since the JuLC compiler generates its own script hash.
  */
 @MultiValidator
 public class CfProxyValidator {

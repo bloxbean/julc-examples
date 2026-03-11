@@ -13,13 +13,15 @@ import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.PlutusV3Script;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
-import com.bloxbean.cardano.client.quicktx.Tx;
+import com.bloxbean.cardano.client.transaction.spec.Asset;
+import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
 import com.example.cftemplates.bet.onchain.CfBetValidator;
 import com.example.offchain.YaciHelper;
 import org.junit.jupiter.api.*;
 
 import java.math.BigInteger;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -33,11 +35,15 @@ class BetIntegrationTest {
     static BackendService backend;
     static QuickTxBuilder quickTx;
     static String scriptAddr;
+    static String policyId;
+    static byte[] policyIdBytes;
     static String createTxHash;
     static String joinTxHash;
     static byte[] player1Pkh, player2Pkh, oraclePkh;
     static BigInteger betAmount = BigInteger.valueOf(10_000_000);
     static BigInteger expiration;
+    static byte[] tokenNameBytes = "BET".getBytes();
+    static String betTokenUnit;
 
     @BeforeAll
     static void setup() throws Exception {
@@ -51,11 +57,14 @@ class BetIntegrationTest {
         player2Pkh = player2.hdKeyPair().getPublicKey().getKeyHash();
         oraclePkh = oracle.hdKeyPair().getPublicKey().getKeyHash();
 
-        // Expiration in the past so oracle can announce immediately
-        expiration = BigInteger.valueOf(System.currentTimeMillis() - 60_000);
+        // Expiration 30 seconds in the future — enough time for CREATE + JOIN
+        expiration = BigInteger.valueOf(System.currentTimeMillis() + 30_000);
 
         script = JulcScriptLoader.load(CfBetValidator.class);
         scriptAddr = AddressProvider.getEntAddress(script, Networks.testnet()).toBech32();
+        policyIdBytes = script.getScriptHash();
+        policyId = HexUtil.encodeHexString(policyIdBytes);
+        betTokenUnit = policyId + HexUtil.encodeHexString(tokenNameBytes);
 
         YaciHelper.topUp(player1.baseAddress(), 1000);
         YaciHelper.topUp(player2.baseAddress(), 1000);
@@ -79,12 +88,26 @@ class BetIntegrationTest {
                         BigIntPlutusData.of(expiration)))
                 .build();
 
-        var createTx = new Tx()
-                .payToContract(scriptAddr, Amount.lovelace(betAmount), betDatum)
-                .from(player1.baseAddress());
+        String tokenNameHex = "0x" + HexUtil.encodeHexString(tokenNameBytes);
+        var betAsset = new Asset(tokenNameHex, BigInteger.ONE);
+        var mintRedeemer = ConstrPlutusData.of(0);
+
+        // Mint token and send betAmount + token to script address with datum
+        var createTx = new ScriptTx()
+                .mintAsset(script, List.of(betAsset), mintRedeemer)
+                .payToContract(scriptAddr,
+                        List.of(Amount.lovelace(betAmount), new Amount(betTokenUnit, BigInteger.ONE)),
+                        betDatum);
+
+        var latestBlock = backend.getBlockService().getLatestBlock();
+        long currentSlot = latestBlock.getValue().getSlot();
 
         var result = quickTx.compose(createTx)
                 .withSigner(SignerProviders.signerFrom(player1))
+                .feePayer(player1.baseAddress())
+                .collateralPayer(player1.baseAddress())
+                .withRequiredSigners(player1Pkh)
+                .validTo(currentSlot + 10)
                 .complete();
 
         assertTrue(result.isSuccessful(), "Create bet should succeed: " + result);
@@ -115,14 +138,21 @@ class BetIntegrationTest {
 
         var joinTx = new ScriptTx()
                 .collectFrom(scriptUtxo, joinRedeemer)
-                .payToContract(scriptAddr, Amount.lovelace(betAmount.multiply(BigInteger.TWO)), joinedDatum)
+                .payToContract(scriptAddr,
+                        List.of(Amount.lovelace(betAmount.multiply(BigInteger.TWO)),
+                                new Amount(betTokenUnit, BigInteger.ONE)),
+                        joinedDatum)
                 .attachSpendingValidator(script);
+
+        var latestBlock = backend.getBlockService().getLatestBlock();
+        long currentSlot = latestBlock.getValue().getSlot();
 
         var result = quickTx.compose(joinTx)
                 .withSigner(SignerProviders.signerFrom(player2))
                 .feePayer(player2.baseAddress())
                 .collateralPayer(player2.baseAddress())
                 .withRequiredSigners(player2Pkh)
+                .validTo(currentSlot + 10)
                 .complete();
 
         assertTrue(result.isSuccessful(), "Join should succeed: " + result);
@@ -136,6 +166,13 @@ class BetIntegrationTest {
     void step3_oracleAnnouncesWinner() throws Exception {
         assumeTrue(yaciAvailable, "Yaci DevKit not available");
         assertNotNull(joinTxHash, "Step 2 must complete first");
+
+        // Wait for expiration to pass
+        long waitMs = expiration.longValueExact() - System.currentTimeMillis() + 2000;
+        if (waitMs > 0) {
+            System.out.println("Waiting " + (waitMs / 1000) + "s for expiration...");
+            Thread.sleep(waitMs);
+        }
 
         var activeUtxo = YaciHelper.findUtxo(backend, scriptAddr, joinTxHash);
 

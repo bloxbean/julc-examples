@@ -79,7 +79,7 @@ class FactoryIntegrationTest {
         factoryPolicyId = factoryScript.getScriptHash();
 
         // Factory token name
-        factoryTokenName = "FACTORY".getBytes();
+        factoryTokenName = "FACTORY_MARKER".getBytes();
 
         // Product ID
         productId = "PRODUCT_001".getBytes();

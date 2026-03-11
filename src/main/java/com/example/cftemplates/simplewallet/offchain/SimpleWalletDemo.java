@@ -103,7 +103,7 @@ public class SimpleWalletDemo {
         System.out.println("Step 1: Minting payment intent...");
 
         BigInteger paymentAmount = BigInteger.valueOf(20_000_000);
-        String intentTokenHex = "0x" + HexUtil.encodeHexString("INTENT".getBytes());
+        String intentTokenHex = "0x" + HexUtil.encodeHexString("INTENT_MARKER".getBytes());
         Asset intentAsset = new Asset(intentTokenHex, BigInteger.ONE);
         ConstrPlutusData mintRedeemer = ConstrPlutusData.of(0);
 

@@ -56,9 +56,10 @@ public class LotteryDemo {
         var backend = YaciHelper.createBackendService();
         var quickTx = new QuickTxBuilder(backend);
 
-        // Secret values for commit-reveal
-        byte[] secret1 = new byte[]{0x01, 0x02, 0x03, 0x04}; // player1's secret
-        byte[] secret2 = new byte[]{0x05, 0x06, 0x07, 0x08}; // player2's secret
+        // Secret values for commit-reveal — UTF-8 decimal strings
+        // (validator parses these as integers via UTF-8 parsing, matching Aiken's int.from_utf8)
+        byte[] secret1 = "137".getBytes(); // player1's secret (integer 137)
+        byte[] secret2 = "42".getBytes();  // player2's secret (integer 42)
         byte[] commit1 = Blake2bUtil.blake2bHash256(secret1);
         byte[] commit2 = Blake2bUtil.blake2bHash256(secret2);
 
@@ -71,8 +72,8 @@ public class LotteryDemo {
         // Step 1: Create game (mint LOTTERY_TOKEN)
         System.out.println("Step 1: Creating lottery game...");
 
-        // Token name = "LOTTERY" (or any name under the policy)
-        byte[] tokenNameBytes = "LOTTERY".getBytes();
+        // Token name must match on-chain LOTTERY_TOKEN_NAME constant
+        byte[] tokenNameBytes = "LOTTERY_TOKEN".getBytes();
         String tokenNameHex = "0x" + HexUtil.encodeHexString(tokenNameBytes);
         String lotteryTokenUnit = policyId + HexUtil.encodeHexString(tokenNameBytes);
         var lotteryAsset = new Asset(tokenNameHex, BigInteger.ONE);
@@ -214,9 +215,9 @@ public class LotteryDemo {
         System.out.println("Step 3b: Settling...");
         var settleUtxo = YaciHelper.findUtxo(backend, scriptAddr, reveal2TxHash);
 
-        // Determine winner off-chain: (v1 + v2) % 2 == 1 → player1 wins
-        BigInteger v1 = new BigInteger(1, secret1);
-        BigInteger v2 = new BigInteger(1, secret2);
+        // Determine winner off-chain: parse UTF-8 decimal strings then (v1 + v2) % 2 == 1 → player1 wins
+        BigInteger v1 = new BigInteger(new String(secret1));  // "137" → 137
+        BigInteger v2 = new BigInteger(new String(secret2));  // "42" → 42
         BigInteger sum = v1.add(v2);
         boolean player1Wins = sum.remainder(BigInteger.TWO).equals(BigInteger.ONE);
         Account winner = player1Wins ? player1 : player2;

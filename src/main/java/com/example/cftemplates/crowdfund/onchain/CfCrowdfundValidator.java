@@ -87,7 +87,8 @@ public class CfCrowdfundValidator {
         BigInteger lowerBound = IntervalLib.finiteLowerBound(txInfo.validRange());
         boolean afterDeadline = lowerBound.compareTo(deadline) >= 0;
         BigInteger scriptLovelace = ValuesLib.lovelaceOf(ownInput.value());
-        boolean goalNotMet = scriptLovelace.compareTo(goal) < 0;
+        // Use <= to match Aiken: allow reclaim when scriptLovelace == goal (edge case)
+        boolean goalNotMet = scriptLovelace.compareTo(goal) <= 0;
         if (!afterDeadline || !goalNotMet) return false;
 
         // Compute donated amount from signers

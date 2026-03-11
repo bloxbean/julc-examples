@@ -9,6 +9,7 @@ import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
 import com.bloxbean.cardano.julc.stdlib.annotation.Param;
 import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
 import com.bloxbean.cardano.julc.stdlib.lib.*;
+import com.bloxbean.cardano.julc.stdlib.lib.ByteStringLib;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -84,10 +85,12 @@ public class CfLotteryValidator {
 
     // --- Mint handlers ---
 
+    static final byte[] LOTTERY_TOKEN = "LOTTERY_TOKEN".getBytes();
+
     static boolean handleCreate(TxInfo txInfo, byte[] policyBytes) {
-        // Exactly 1 token minted under this policy
-        BigInteger mintCount = ValuesLib.countTokensWithQty(txInfo.mint(), policyBytes, BigInteger.ONE);
-        boolean oneMinted = mintCount.compareTo(BigInteger.ONE) == 0;
+        // Exactly 1 LOTTERY_TOKEN minted
+        BigInteger qty = ValuesLib.assetOf(txInfo.mint(), policyBytes, LOTTERY_TOKEN);
+        boolean oneMinted = qty.compareTo(BigInteger.ONE) == 0;
 
         // Find output with the minted token at any address
         // (off-chain sends it to the lottery script address)
@@ -107,9 +110,10 @@ public class CfLotteryValidator {
     }
 
     static boolean handleBurn(TxInfo txInfo, byte[] policyBytes) {
-        // Exactly 1 token burned (qty = -1)
-        BigInteger burnCount = ValuesLib.countTokensWithQty(txInfo.mint(), policyBytes, BigInteger.ONE.negate());
-        return burnCount.compareTo(BigInteger.ONE) == 0;
+        // Exactly 1 LOTTERY_TOKEN burned (qty = -1)
+        boolean burned = ValuesLib.assetOf(txInfo.mint(), policyBytes, LOTTERY_TOKEN)
+                .compareTo(BigInteger.ONE.negate()) == 0;
+        return burned;
     }
 
     // --- Spend handlers ---
@@ -157,8 +161,8 @@ public class CfLotteryValidator {
         // Script consumed
         boolean consumed = isScriptConsumed(txInfo.outputs(), ownInput.address());
         // Token burned
-        boolean burned = ValuesLib.countTokensWithQty(txInfo.mint(), ownHash, BigInteger.ONE.negate())
-                .compareTo(BigInteger.ONE) == 0;
+        boolean burned = ValuesLib.assetOf(txInfo.mint(), ownHash, LOTTERY_TOKEN)
+                .compareTo(BigInteger.ONE.negate()) == 0;
 
         return n1Empty && afterDeadline && p2Signed && consumed && burned;
     }
@@ -176,8 +180,8 @@ public class CfLotteryValidator {
         // Script consumed
         boolean consumed = isScriptConsumed(txInfo.outputs(), ownInput.address());
         // Token burned
-        boolean burned = ValuesLib.countTokensWithQty(txInfo.mint(), ownHash, BigInteger.ONE.negate())
-                .compareTo(BigInteger.ONE) == 0;
+        boolean burned = ValuesLib.assetOf(txInfo.mint(), ownHash, LOTTERY_TOKEN)
+                .compareTo(BigInteger.ONE.negate()) == 0;
 
         return n1Revealed && n2Empty && afterDeadline && p1Signed && consumed && burned;
     }
@@ -189,8 +193,8 @@ public class CfLotteryValidator {
         if (!n1Revealed || !n2Revealed) return false;
 
         // Determine winner by parity: (v1 + v2) % 2 == 1 → player1 wins
-        BigInteger v1 = ByteStringLib.byteStringToInteger(false, ld.n1());
-        BigInteger v2 = ByteStringLib.byteStringToInteger(false, ld.n2());
+        BigInteger v1 = ByteStringLib.utf8ToInteger(ld.n1());
+        BigInteger v2 = ByteStringLib.utf8ToInteger(ld.n2());
         BigInteger sum = v1.add(v2);
         boolean player1Wins = sum.remainder(BigInteger.TWO).equals(BigInteger.ONE);
         byte[] winner = player1Wins ? ld.player1() : ld.player2();
@@ -200,8 +204,8 @@ public class CfLotteryValidator {
         // Script consumed
         boolean consumed = isScriptConsumed(txInfo.outputs(), ownInput.address());
         // Token burned
-        boolean burned = ValuesLib.countTokensWithQty(txInfo.mint(), ownHash, BigInteger.ONE.negate())
-                .compareTo(BigInteger.ONE) == 0;
+        boolean burned = ValuesLib.assetOf(txInfo.mint(), ownHash, LOTTERY_TOKEN)
+                .compareTo(BigInteger.ONE.negate()) == 0;
 
         return winnerSigned && consumed && burned;
     }

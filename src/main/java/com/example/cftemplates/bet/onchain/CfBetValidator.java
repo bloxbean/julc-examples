@@ -60,14 +60,15 @@ public class CfBetValidator {
 
         TxOut ownInput = ContextsLib.findOwnInput(ctx).get().resolved();
         BetDatum currentDatum = extractDatumFromInput(ownInput);
+        byte[] ownHash = ContextsLib.ownHash(ctx);
 
         return switch (redeemer) {
-            case Join j -> handleJoin(txInfo, ownInput, currentDatum);
+            case Join j -> handleJoin(txInfo, ownInput, currentDatum, ownHash);
             case AnnounceWinner a -> handleAnnounceWinner(txInfo, currentDatum, a.winner());
         };
     }
 
-    static boolean handleJoin(TxInfo txInfo, TxOut ownInput, BetDatum currentDatum) {
+    static boolean handleJoin(TxInfo txInfo, TxOut ownInput, BetDatum currentDatum, byte[] ownHash) {
         Address scriptAddress = ownInput.address();
         BigInteger inputLovelace = ValuesLib.lovelaceOf(ownInput.value());
 
@@ -85,6 +86,7 @@ public class CfBetValidator {
         boolean player1Unchanged = newDatum.player1().equals(currentDatum.player1());
         boolean notSameAsPlayer1 = !joiningPlayer.equals(currentDatum.player1());
         boolean notSameAsOracle = !joiningPlayer.equals(currentDatum.oracle());
+        boolean hasBetToken = ValuesLib.containsPolicy(ownInput.value(), ownHash);
         boolean potDoubled = outputLovelace.compareTo(inputLovelace.multiply(BigInteger.TWO)) == 0;
         boolean expirationUnchanged = newDatum.expiration().compareTo(currentDatum.expiration()) == 0;
         BigInteger upperBound = IntervalLib.finiteUpperBound(txInfo.validRange());
@@ -92,7 +94,7 @@ public class CfBetValidator {
 
         return noPlayer2Yet && player2Signed && oracleUnchanged
                 && player1Unchanged && notSameAsPlayer1 && notSameAsOracle
-                && potDoubled && expirationUnchanged && notExpired;
+                && hasBetToken && potDoubled && expirationUnchanged && notExpired;
     }
 
     static boolean handleAnnounceWinner(TxInfo txInfo, BetDatum currentDatum, byte[] winner) {

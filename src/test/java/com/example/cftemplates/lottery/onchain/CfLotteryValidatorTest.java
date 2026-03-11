@@ -28,9 +28,9 @@ class CfLotteryValidatorTest extends ContractTest {
     static final BigInteger DELTA = BigInteger.valueOf(3_600_000); // 1 hour
     static final BigInteger POT_AMOUNT = BigInteger.valueOf(20_000_000);
 
-    // Secret values for commits
-    static final byte[] SECRET1 = "player1_secret_value".getBytes();
-    static final byte[] SECRET2 = "player2_secret_value".getBytes();
+    // Secret values for commits — UTF-8 decimal strings (parsed by int.from_utf8 semantics)
+    static final byte[] SECRET1 = "137".getBytes();  // integer 137
+    static final byte[] SECRET2 = "42".getBytes();   // integer 42
     static byte[] COMMIT1;
     static byte[] COMMIT2;
 
@@ -87,7 +87,7 @@ class CfLotteryValidatorTest extends ContractTest {
                     EMPTY_BYTES, EMPTY_BYTES, END_REVEAL, DELTA);
 
             // Mint 1 LOTTERY_TOKEN
-            var tokenName = new TokenName(new byte[]{0x4C, 0x4F, 0x54}); // "LOT"
+            var tokenName = new TokenName("LOTTERY_TOKEN".getBytes()); // "LOTTERY_TOKEN" (off-chain convention)
             var mintValue = Value.singleton(policyId, tokenName, BigInteger.ONE);
 
             // Output to script address with the token and datum
@@ -124,7 +124,7 @@ class CfLotteryValidatorTest extends ContractTest {
             var datum = lotteryDatum(PLAYER1, PLAYER2, EMPTY_BYTES, COMMIT2,
                     EMPTY_BYTES, EMPTY_BYTES, END_REVEAL, DELTA);
 
-            var tokenName = new TokenName(new byte[]{0x4C, 0x4F, 0x54});
+            var tokenName = new TokenName("LOTTERY_TOKEN".getBytes());
             var mintValue = Value.singleton(policyId, tokenName, BigInteger.ONE);
 
             var outputValue = Value.lovelace(POT_AMOUNT)
@@ -164,7 +164,7 @@ class CfLotteryValidatorTest extends ContractTest {
 
             var spentRef = TestDataBuilder.randomTxOutRef_typed();
             var policyId = new PolicyId(SCRIPT_HASH);
-            var tokenName = new TokenName(new byte[]{0x4C, 0x4F, 0x54});
+            var tokenName = new TokenName("LOTTERY_TOKEN".getBytes());
             var inputValue = Value.lovelace(POT_AMOUNT)
                     .merge(Value.singleton(policyId, tokenName, BigInteger.ONE));
 
@@ -208,7 +208,7 @@ class CfLotteryValidatorTest extends ContractTest {
 
             var spentRef = TestDataBuilder.randomTxOutRef_typed();
             var policyId = new PolicyId(SCRIPT_HASH);
-            var tokenName = new TokenName(new byte[]{0x4C, 0x4F, 0x54});
+            var tokenName = new TokenName("LOTTERY_TOKEN".getBytes());
             var inputValue = Value.lovelace(POT_AMOUNT)
                     .merge(Value.singleton(policyId, tokenName, BigInteger.ONE));
 
@@ -252,7 +252,7 @@ class CfLotteryValidatorTest extends ContractTest {
 
             var spentRef = TestDataBuilder.randomTxOutRef_typed();
             var policyId = new PolicyId(SCRIPT_HASH);
-            var tokenName = new TokenName(new byte[]{0x4C, 0x4F, 0x54});
+            var tokenName = new TokenName("LOTTERY_TOKEN".getBytes());
             var inputValue = Value.lovelace(POT_AMOUNT)
                     .merge(Value.singleton(policyId, tokenName, BigInteger.ONE));
 
@@ -263,10 +263,10 @@ class CfLotteryValidatorTest extends ContractTest {
                             Optional.empty()));
 
             // Determine winner using same logic as validator:
-            // v1 = byteStringToInteger(false, n1), v2 = byteStringToInteger(false, n2)
+            // Parse UTF-8 decimal strings to integers (matches Aiken's int.from_utf8)
             // (v1 + v2) % 2 == 1 => player1 wins, else player2
-            BigInteger v1 = new BigInteger(1, SECRET1);
-            BigInteger v2 = new BigInteger(1, SECRET2);
+            BigInteger v1 = new BigInteger(new String(SECRET1));  // "137" → 137
+            BigInteger v2 = new BigInteger(new String(SECRET2));  // "42" → 42
             BigInteger sum = v1.add(v2);
             boolean player1Wins = sum.remainder(BigInteger.TWO).equals(BigInteger.ONE);
             byte[] winner = player1Wins ? PLAYER1 : PLAYER2;

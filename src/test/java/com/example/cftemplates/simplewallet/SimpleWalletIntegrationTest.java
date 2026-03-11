@@ -82,7 +82,7 @@ class SimpleWalletIntegrationTest {
     void step1_mintIntentMarker() throws Exception {
         assumeTrue(yaciAvailable, "Yaci DevKit not available");
 
-        var tokenName = "INTENT".getBytes();
+        var tokenName = "INTENT_MARKER".getBytes();
         var tokenNameHex = "0x" + HexUtil.encodeHexString(tokenName);
         var intentAsset = new Asset(tokenNameHex, BigInteger.ONE);
 
@@ -169,7 +169,7 @@ class SimpleWalletIntegrationTest {
         // Spend redeemer for wallet script (any PlutusData, just needs owner signature)
         var walletSpendRedeemer = ConstrPlutusData.of(0);
 
-        var tokenName = "INTENT".getBytes();
+        var tokenName = "INTENT_MARKER".getBytes();
         var tokenNameHex = "0x" + HexUtil.encodeHexString(tokenName);
         var burnAsset = new Asset(tokenNameHex, BigInteger.ONE.negate());
 

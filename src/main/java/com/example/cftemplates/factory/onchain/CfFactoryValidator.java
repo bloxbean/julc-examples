@@ -23,6 +23,10 @@ import java.util.Optional;
  *   datum updated with new product, owner signs.
  * <p>
  * Based on: cardano-template-and-ecosystem-monitoring/factory
+ * <p>
+ * NOTE: Combines what were separate Aiken scripts (factory minting + management)
+ * into a single JuLC @MultiValidator. Architecturally different but functionally
+ * equivalent since the script hash doubles as the policy ID.
  */
 @MultiValidator
 public class CfFactoryValidator {
@@ -35,6 +39,8 @@ public class CfFactoryValidator {
 
     record CreateProduct(byte[] productPolicyId, byte[] productId) {}
 
+    static final byte[] FACTORY_MARKER = "FACTORY_MARKER".getBytes();
+
     @Entrypoint(purpose = Purpose.MINT)
     public static boolean mint(PlutusData redeemer, ScriptContext ctx) {
         TxInfo txInfo = ctx.txInfo();
@@ -46,9 +52,9 @@ public class CfFactoryValidator {
         // One-shot: seed UTxO consumed
         boolean consumesSeed = checkSeedConsumed(txInfo.inputs());
 
-        // Exactly 1 token minted
-        BigInteger mintCount = ValuesLib.countTokensWithQty(txInfo.mint(), policyBytes, BigInteger.ONE);
-        boolean oneMinted = mintCount.compareTo(BigInteger.ONE) == 0;
+        // Exactly 1 FACTORY_MARKER token minted
+        BigInteger qty = ValuesLib.assetOf(txInfo.mint(), policyBytes, FACTORY_MARKER);
+        boolean oneMinted = qty.compareTo(BigInteger.ONE) == 0;
 
         return ownerSigned && consumesSeed && oneMinted;
     }
@@ -68,8 +74,10 @@ public class CfFactoryValidator {
         // Marker token must be in input
         boolean inputHasMarker = ValuesLib.containsPolicy(ownInput.value(), ownHash);
 
-        // Find continuing output with marker token
+        // Find continuing output with marker token — enforce exactly 1
         TxOut continuingOutput = findContinuingWithPolicy(txInfo.outputs(), scriptAddr, ownHash);
+        long continuingCount = countContinuingWithPolicy(txInfo.outputs(), scriptAddr, ownHash);
+        if (continuingCount != 1) return false;
 
         // Product must be minted
         boolean productMinted = ValuesLib.assetOf(txInfo.mint(),
@@ -106,6 +114,18 @@ public class CfFactoryValidator {
             }
         }
         return found;
+    }
+
+    static long countContinuingWithPolicy(JulcList<TxOut> outputs, Address scriptAddr, byte[] policy) {
+        long count = 0;
+        for (var output : outputs) {
+            if (Builtins.equalsData(output.address(), scriptAddr)) {
+                if (ValuesLib.containsPolicy(output.value(), policy)) {
+                    count = count + 1;
+                }
+            }
+        }
+        return count;
     }
 
     static TxOut findContinuingWithPolicy(JulcList<TxOut> outputs, Address scriptAddr, byte[] policy) {

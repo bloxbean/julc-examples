@@ -24,6 +24,9 @@ import java.util.Optional;
  *   - Validates commitment hash (32 bytes) and non-empty snapshot ID
  * <p>
  * Based on: cardano-template-and-ecosystem-monitoring/storage
+ * <p>
+ * NOTE: Combines what were separate Aiken scripts into a single JuLC @MultiValidator.
+ * Architecturally different but functionally equivalent.
  */
 @MultiValidator
 public class CfStorageValidator {

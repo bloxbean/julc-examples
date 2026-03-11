@@ -22,6 +22,8 @@ import java.util.Optional;
  * <p>
  * Uses oracle reference input pattern for price feeds.
  * Player field: empty byte[] = no player (sentinel pattern).
+ * NOTE: Deliberate simplification — uses sentinel byte[] instead of
+ * Aiken's Option type for the player field. Internally consistent.
  * <p>
  * Based on: cardano-template-and-ecosystem-monitoring/pricebet
  */

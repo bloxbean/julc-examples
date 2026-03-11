@@ -82,7 +82,7 @@ class LotteryIntegrationTest {
         policyId = HexUtil.encodeHexString(script.getScriptHash());
 
         // Token name for the lottery token (use gameIndex as name bytes)
-        tokenName = "LOTTERY".getBytes();
+        tokenName = "LOTTERY_TOKEN".getBytes();
 
         YaciHelper.topUp(player1.baseAddress(), 1000);
         YaciHelper.topUp(player2.baseAddress(), 1000);

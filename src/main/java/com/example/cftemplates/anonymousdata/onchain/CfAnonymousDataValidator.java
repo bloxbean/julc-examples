@@ -7,6 +7,7 @@ import com.bloxbean.cardano.julc.stdlib.Builtins;
 import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
 import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
 import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
+import com.bloxbean.cardano.julc.core.types.AssetEntry;
 import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
 import com.bloxbean.cardano.julc.stdlib.lib.CryptoLib;
 import com.bloxbean.cardano.julc.stdlib.lib.OutputLib;
@@ -54,6 +55,9 @@ public class CfAnonymousDataValidator {
 
         // Find own input
         TxOut ownInput = ContextsLib.findOwnInput(ctx).get().resolved();
+
+        // Enforce exactly 1 non-ADA token (matches Aiken's single-token destructure)
+        if (countNonAdaTokens(ownInput) != 1) return false;
 
         // Extract the committed ID from the spent UTXO's non-ADA token
         byte[] committedId = extractTokenAssetName(ownInput);
@@ -104,6 +108,17 @@ public class CfAnonymousDataValidator {
             }
         }
         return result;
+    }
+
+    // Count non-ADA tokens in value (must be exactly 1 for anonymous data scheme)
+    static long countNonAdaTokens(TxOut output) {
+        long count = 0;
+        for (AssetEntry asset : ValuesLib.flattenTyped(output.value())) {
+            if (!asset.policyId().equals(Builtins.emptyByteString())) {
+                count = count + 1;
+            }
+        }
+        return count;
     }
 
     static boolean checkSignerCanReconstruct(JulcList<PubKeyHash> signatories, byte[] nonce, byte[] committedId) {

@@ -159,6 +159,7 @@ class CfIdentityValidatorTest extends ContractTest {
                     .input(spentInput)
                     .output(continuingOutput)
                     .signer(OWNER)
+                    .validRange(Interval.before(EXPIRES)) // tx upper bound must be before delegate expires
                     .buildPlutusData();
 
             var result = evaluate(program, ctx);
@@ -193,6 +194,7 @@ class CfIdentityValidatorTest extends ContractTest {
                     .input(spentInput)
                     .output(continuingOutput)
                     .signer(OWNER)
+                    .validRange(Interval.before(EXPIRES))
                     .buildPlutusData();
 
             var result = evaluate(program, ctx);

@@ -57,8 +57,8 @@ public class CfWalletFundsValidator {
         Address recipientAddr = (Address)(Object) intent.recipient();
         BigInteger amtToRecipient = sumLovelaceToAddress(txInfo.outputs(), recipientAddr);
 
-        // Must pay at least the specified amount
-        boolean paymentOk = amtToRecipient.compareTo(intent.lovelaceAmt()) >= 0;
+        // Must pay exactly the specified amount (matches Aiken's equality check)
+        boolean paymentOk = amtToRecipient.compareTo(intent.lovelaceAmt()) == 0;
 
         // Intent marker must be burned
         boolean markerBurned = ValuesLib.countTokensWithQty(

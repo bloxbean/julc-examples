@@ -9,6 +9,7 @@ import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
 import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
 import com.bloxbean.cardano.julc.stdlib.lib.AddressLib;
 import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
+import com.bloxbean.cardano.julc.stdlib.lib.IntervalLib;
 import com.bloxbean.cardano.julc.stdlib.lib.OutputLib;
 import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
 
@@ -70,10 +71,16 @@ public class CfIdentityValidator {
             case AddDelegate a -> owner.equals(newState.owner())
                     && !hasDelegate(delegates, a.delegate())
                     && hasDelegate(newState.delegates(), a.delegate())
-                    && !a.delegate().equals(owner);
+                    && !a.delegate().equals(owner)
+                    // Prevent adding already-expired delegates (matches Aiken's valid_before check)
+                    && IntervalLib.finiteUpperBound(txInfo.validRange()).compareTo(a.expires()) <= 0
+                    // Ensure exactly 1 delegate was added
+                    && newState.delegates().size() == delegates.size() + 1;
             case RemoveDelegate r -> owner.equals(newState.owner())
                     && hasDelegate(delegates, r.delegate())
-                    && !hasDelegate(newState.delegates(), r.delegate());
+                    && !hasDelegate(newState.delegates(), r.delegate())
+                    // Ensure exactly 1 delegate was removed
+                    && delegates.size() == newState.delegates().size() + 1;
         };
     }
 

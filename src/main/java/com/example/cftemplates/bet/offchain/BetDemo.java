@@ -12,13 +12,20 @@ import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
+import com.bloxbean.cardano.client.transaction.spec.Asset;
+import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
 import com.example.cftemplates.bet.onchain.CfBetValidator;
 import com.example.offchain.YaciHelper;
 
+import java.math.BigInteger;
+import java.util.List;
+
 /**
  * Off-chain demo for CfBetValidator.
- * Player1 creates bet → Player2 joins → Oracle announces winner.
+ * Step 1: Player1 creates bet (mint bet token via ScriptTx).
+ * Step 2: Player2 joins (validTo before expiration).
+ * Step 3: Oracle announces winner (validFrom after expiration).
  */
 public class BetDemo {
 
@@ -35,9 +42,10 @@ public class BetDemo {
         byte[] player2Pkh = player2.hdKeyPair().getPublicKey().getKeyHash();
         byte[] oraclePkh = oracle.hdKeyPair().getPublicKey().getKeyHash();
 
-        // Expiration in the past so oracle can announce immediately
-        java.math.BigInteger expiration = java.math.BigInteger.valueOf(System.currentTimeMillis() - 60_000);
-        java.math.BigInteger betAmount = java.math.BigInteger.valueOf(10_000_000); // 10 ADA
+        // Expiration 15 seconds in the future — enough time for CREATE + JOIN,
+        // then we wait for it to pass before ANNOUNCE_WINNER
+        BigInteger expiration = BigInteger.valueOf(System.currentTimeMillis() + 15_000);
+        BigInteger betAmount = BigInteger.valueOf(10_000_000); // 10 ADA
 
         YaciHelper.topUp(player1.baseAddress(), 1000);
         YaciHelper.topUp(player2.baseAddress(), 1000);
@@ -45,12 +53,23 @@ public class BetDemo {
 
         var script = JulcScriptLoader.load(CfBetValidator.class);
         var scriptAddr = AddressProvider.getEntAddress(script, Networks.testnet()).toBech32();
+        var policyId = HexUtil.encodeHexString(script.getScriptHash());
+        System.out.println("Bet policy: " + policyId);
 
         var backend = YaciHelper.createBackendService();
         var quickTx = new QuickTxBuilder(backend);
 
-        // Step 1: Player1 creates bet
-        System.out.println("Step 1: Player1 creating bet...");
+        // Step 1: Player1 creates bet (mint bet token)
+        System.out.println("Step 1: Player1 creating bet (minting bet token)...");
+
+        byte[] tokenNameBytes = "BET".getBytes();
+        String tokenNameHex = "0x" + HexUtil.encodeHexString(tokenNameBytes);
+        var betAsset = new Asset(tokenNameHex, BigInteger.ONE);
+
+        // Mint redeemer (raw PlutusData — the mint handler takes PlutusData redeemer)
+        var mintRedeemer = ConstrPlutusData.of(0);
+
+        // BetDatum(player1, empty player2, oracle, expiration)
         var betDatum = ConstrPlutusData.builder()
                 .alternative(0)
                 .data(ListPlutusData.of(
@@ -60,12 +79,24 @@ public class BetDemo {
                         BigIntPlutusData.of(expiration)))
                 .build();
 
-        var createTx = new Tx()
-                .payToContract(scriptAddr, Amount.lovelace(betAmount), betDatum)
-                .from(player1.baseAddress());
+        // Mint bet token and send betAmount + token to script address with datum
+        String betTokenUnit = policyId + HexUtil.encodeHexString(tokenNameBytes);
+        var createTx = new ScriptTx()
+                .mintAsset(script, List.of(betAsset), mintRedeemer)
+                .payToContract(scriptAddr,
+                        List.of(Amount.lovelace(betAmount), new Amount(betTokenUnit, BigInteger.ONE)),
+                        betDatum);
+
+        // Get current slot for validity range (must be before expiration)
+        var latestBlock = backend.getBlockService().getLatestBlock();
+        long currentSlot = latestBlock.getValue().getSlot();
 
         var createResult = quickTx.compose(createTx)
                 .withSigner(SignerProviders.signerFrom(player1))
+                .feePayer(player1.baseAddress())
+                .collateralPayer(player1.baseAddress())
+                .withRequiredSigners(player1Pkh)
+                .validTo(currentSlot + 10) // upper bound before expiration
                 .complete();
 
         if (!createResult.isSuccessful()) {
@@ -95,14 +126,21 @@ public class BetDemo {
 
         var joinTx = new ScriptTx()
                 .collectFrom(scriptUtxo, joinRedeemer)
-                .payToContract(scriptAddr, Amount.lovelace(betAmount.multiply(java.math.BigInteger.TWO)), joinedDatum)
+                .payToContract(scriptAddr,
+                        List.of(Amount.lovelace(betAmount.multiply(BigInteger.TWO)),
+                                new Amount(betTokenUnit, BigInteger.ONE)),
+                        joinedDatum)
                 .attachSpendingValidator(script);
+
+        latestBlock = backend.getBlockService().getLatestBlock();
+        currentSlot = latestBlock.getValue().getSlot();
 
         var joinResult = quickTx.compose(joinTx)
                 .withSigner(SignerProviders.signerFrom(player2))
                 .feePayer(player2.baseAddress())
                 .collateralPayer(player2.baseAddress())
                 .withRequiredSigners(player2Pkh)
+                .validTo(currentSlot + 10) // upper bound before expiration
                 .complete();
 
         if (!joinResult.isSuccessful()) {
@@ -112,6 +150,13 @@ public class BetDemo {
         var joinTxHash = joinResult.getValue();
         YaciHelper.waitForConfirmation(backend, joinTxHash);
         System.out.println("Player2 joined! Tx: " + joinTxHash);
+
+        // Wait for expiration to pass
+        long waitMs = expiration.longValueExact() - System.currentTimeMillis() + 2000;
+        if (waitMs > 0) {
+            System.out.println("Waiting " + (waitMs / 1000) + "s for expiration...");
+            Thread.sleep(waitMs);
+        }
 
         // Step 3: Oracle announces player1 as winner
         System.out.println("Step 3: Oracle announcing winner (player1)...");
@@ -123,12 +168,12 @@ public class BetDemo {
                 .data(ListPlutusData.of(new BytesPlutusData(player1Pkh)))
                 .build();
 
-        var latestBlock = backend.getBlockService().getLatestBlock();
-        long currentSlot = latestBlock.getValue().getSlot();
+        latestBlock = backend.getBlockService().getLatestBlock();
+        currentSlot = latestBlock.getValue().getSlot();
 
         var announceTx = new ScriptTx()
                 .collectFrom(activeUtxo, announceRedeemer)
-                .payToAddress(player1.baseAddress(), Amount.lovelace(betAmount.multiply(java.math.BigInteger.TWO)))
+                .payToAddress(player1.baseAddress(), Amount.lovelace(betAmount.multiply(BigInteger.TWO)))
                 .attachSpendingValidator(script);
 
         var announceResult = quickTx.compose(announceTx)
@@ -136,7 +181,7 @@ public class BetDemo {
                 .feePayer(oracle.baseAddress())
                 .collateralPayer(oracle.baseAddress())
                 .withRequiredSigners(oraclePkh)
-                .validFrom(currentSlot)
+                .validFrom(currentSlot) // lower bound after expiration
                 .complete();
 
         if (!announceResult.isSuccessful()) {

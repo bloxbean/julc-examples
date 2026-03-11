@@ -56,8 +56,9 @@ public class CfAnonymousDataValidator {
         // Find own input
         TxOut ownInput = ContextsLib.findOwnInput(ctx).get().resolved();
 
-        // Enforce exactly 1 non-ADA token (matches Aiken's single-token destructure)
+        // Enforce exactly 1 non-ADA token with quantity 1 (matches Aiken's single-token destructure)
         if (countNonAdaTokens(ownInput) != 1) return false;
+        if (!checkNonAdaTokenQtyIsOne(ownInput)) return false;
 
         // Extract the committed ID from the spent UTXO's non-ADA token
         byte[] committedId = extractTokenAssetName(ownInput);
@@ -108,6 +109,20 @@ public class CfAnonymousDataValidator {
             }
         }
         return result;
+    }
+
+    // Verify the single non-ADA token has quantity exactly 1
+    static boolean checkNonAdaTokenQtyIsOne(TxOut output) {
+        boolean qtyIsOne = false;
+        for (AssetEntry asset : ValuesLib.flattenTyped(output.value())) {
+            if (!asset.policyId().equals(Builtins.emptyByteString())) {
+                if (asset.amount().compareTo(BigInteger.ONE) == 0) {
+                    qtyIsOne = true;
+                }
+                break;
+            }
+        }
+        return qtyIsOne;
     }
 
     // Count non-ADA tokens in value (must be exactly 1 for anonymous data scheme)

@@ -93,9 +93,13 @@ public class AnonymousDataDemo {
         // Spend redeemer = ByteString(nonce)
         var spendRedeemer = new BytesPlutusData(nonce);
 
+        // Explicitly send the token back to the committer (matches Aiken off-chain behavior)
+        var idHexReveal = HexUtil.encodeHexString(id);
+        var tokenUnit = policyId + idHexReveal;
         var revealTx = new ScriptTx()
                 .collectFrom(scriptUtxo, spendRedeemer)
-                .payToAddress(committer.baseAddress(), Amount.ada(2))
+                .payToAddress(committer.baseAddress(),
+                        List.of(Amount.ada(2), new Amount(tokenUnit, BigInteger.ONE)))
                 .attachSpendingValidator(script);
 
         var revealResult = quickTx.compose(revealTx)

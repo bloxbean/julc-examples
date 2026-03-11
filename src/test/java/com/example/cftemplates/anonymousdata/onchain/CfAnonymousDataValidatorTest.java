@@ -90,6 +90,37 @@ class CfAnonymousDataValidatorTest extends ContractTest {
         }
 
         @Test
+        void mint_wrongAssetName_fails() throws Exception {
+            var compiled = compileValidator(CfAnonymousDataValidator.class);
+            var program = compiled.program();
+
+            byte[] id = computeId(PKH, NONCE);
+            var redeemer = PlutusData.bytes(id);
+
+            var policyId = new PolicyId(SCRIPT_HASH);
+
+            // Mint with a DIFFERENT asset name than the redeemer id
+            byte[] wrongId = computeId(OTHER_PKH, NONCE);
+            var mintValue = Value.singleton(policyId, new TokenName(wrongId), BigInteger.ONE);
+
+            var outputValue = Value.lovelace(BigInteger.valueOf(2_000_000))
+                    .merge(Value.singleton(policyId, new TokenName(wrongId), BigInteger.ONE));
+            var tokenOutput = new TxOut(scriptAddress(),
+                    outputValue,
+                    new OutputDatum.OutputDatumInline(PlutusData.constr(0)),
+                    Optional.empty());
+
+            var ctx = mintingContext(policyId)
+                    .redeemer(redeemer)
+                    .mint(mintValue)
+                    .output(tokenOutput)
+                    .buildPlutusData();
+
+            var result = evaluate(program, ctx);
+            assertFailure(result);
+        }
+
+        @Test
         void mint_wrongQuantity_fails() throws Exception {
             var compiled = compileValidator(CfAnonymousDataValidator.class);
             var program = compiled.program();
@@ -169,6 +200,38 @@ class CfAnonymousDataValidatorTest extends ContractTest {
             var spentRef = TestDataBuilder.randomTxOutRef_typed();
             var inputValue = Value.lovelace(BigInteger.valueOf(2_000_000))
                     .merge(Value.singleton(policyId, new TokenName(id), BigInteger.ONE));
+            var spentInput = new TxInInfo(spentRef,
+                    new TxOut(scriptAddress(),
+                            inputValue,
+                            new OutputDatum.OutputDatumInline(datum),
+                            Optional.empty()));
+
+            var ctx = spendingContext(spentRef, datum)
+                    .redeemer(redeemer)
+                    .input(spentInput)
+                    .signer(PKH)
+                    .buildPlutusData();
+
+            var result = evaluate(program, ctx);
+            assertFailure(result);
+        }
+
+        @Test
+        void spend_missingIdToken_fails() throws Exception {
+            var compiled = compileValidator(CfAnonymousDataValidator.class);
+            var program = compiled.program();
+
+            byte[] id = computeId(PKH, NONCE);
+            var datum = PlutusData.constr(0);
+            var redeemer = PlutusData.bytes(NONCE);
+
+            var policyId = new PolicyId(SCRIPT_HASH);
+
+            // Input has a DIFFERENT token (not the committed ID)
+            byte[] differentId = computeId(OTHER_PKH, NONCE);
+            var spentRef = TestDataBuilder.randomTxOutRef_typed();
+            var inputValue = Value.lovelace(BigInteger.valueOf(2_000_000))
+                    .merge(Value.singleton(policyId, new TokenName(differentId), BigInteger.ONE));
             var spentInput = new TxInInfo(spentRef,
                     new TxOut(scriptAddress(),
                             inputValue,

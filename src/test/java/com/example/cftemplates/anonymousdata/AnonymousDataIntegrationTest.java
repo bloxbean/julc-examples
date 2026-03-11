@@ -103,9 +103,12 @@ class AnonymousDataIntegrationTest {
         var scriptUtxo = YaciHelper.findUtxo(backend, scriptAddr, commitTxHash);
         var spendRedeemer = new BytesPlutusData(nonce);
 
+        // Explicitly send the token back to the committer (matches Aiken off-chain behavior)
+        var tokenUnit = HexUtil.encodeHexString(script.getScriptHash()) + HexUtil.encodeHexString(id);
         var revealTx = new ScriptTx()
                 .collectFrom(scriptUtxo, spendRedeemer)
-                .payToAddress(committer.baseAddress(), Amount.ada(2))
+                .payToAddress(committer.baseAddress(),
+                        List.of(Amount.ada(2), new Amount(tokenUnit, BigInteger.ONE)))
                 .attachSpendingValidator(script);
 
         var result = quickTx.compose(revealTx)

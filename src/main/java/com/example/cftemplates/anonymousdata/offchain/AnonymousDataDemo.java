@@ -76,6 +76,7 @@ public class AnonymousDataDemo {
                 .collateralPayer(committer.baseAddress())
                 .withRequiredSigners(committerPkh)
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!commitResult.isSuccessful()) {
@@ -107,6 +108,7 @@ public class AnonymousDataDemo {
                 .feePayer(committer.baseAddress())
                 .collateralPayer(committer.baseAddress())
                 .withRequiredSigners(committerPkh)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!revealResult.isSuccessful()) {

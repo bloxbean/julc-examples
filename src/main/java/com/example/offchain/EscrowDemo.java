@@ -114,6 +114,7 @@ public class EscrowDemo {
                 .withRequiredSigners(sellerPkh, buyerPkh)
                 .feePayer(buyer.baseAddress())
                 .collateralPayer(buyer.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!unlockResult.isSuccessful()) {

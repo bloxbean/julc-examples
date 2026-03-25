@@ -125,6 +125,7 @@ public class MpfRegistryDemo {
                 .withRequiredSigners(senderPkh)
                 .feePayer(sender.baseAddress())
                 .collateralPayer(sender.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!unlockResult.isSuccessful()) {

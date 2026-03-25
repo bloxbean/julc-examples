@@ -113,6 +113,7 @@ public class CollateralLoanDemo {
                 .withRequiredSigners(borrowerPkh)
                 .feePayer(borrower.baseAddress())
                 .collateralPayer(borrower.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!takeResult.isSuccessful()) {
@@ -139,6 +140,7 @@ public class CollateralLoanDemo {
                 .withRequiredSigners(borrowerPkh)
                 .feePayer(borrower.baseAddress())
                 .collateralPayer(borrower.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!repayResult.isSuccessful()) {

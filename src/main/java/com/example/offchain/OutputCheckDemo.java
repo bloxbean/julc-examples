@@ -117,6 +117,7 @@ public class OutputCheckDemo {
                 .withSigner(SignerProviders.signerFrom(sender))
                 .feePayer(sender.baseAddress())
                 .collateralPayer(sender.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!unlockResult.isSuccessful()) {

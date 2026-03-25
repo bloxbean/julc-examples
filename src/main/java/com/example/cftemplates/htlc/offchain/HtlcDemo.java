@@ -99,6 +99,7 @@ public class HtlcDemo {
                 .feePayer(claimer.baseAddress())
                 .collateralPayer(claimer.baseAddress())
                 .validTo(currentSlot + 200)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!unlockResult.isSuccessful()) {

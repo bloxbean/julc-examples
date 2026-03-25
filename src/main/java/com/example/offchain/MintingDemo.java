@@ -63,6 +63,7 @@ public class MintingDemo {
                 .withRequiredSigners(authorizerPkh)
                 .feePayer(authorizerAddr)
                 .collateralPayer(authorizerAddr)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!mintResult.isSuccessful()) {

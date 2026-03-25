@@ -8,6 +8,7 @@ import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
+import com.bloxbean.cardano.client.util.JsonUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
 import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.escrow.onchain.CfEscrowValidator;
@@ -84,6 +85,7 @@ public class EscrowDemo {
                 .withSigner(SignerProviders.signerFrom(recipient))
                 .feePayer(recipient.baseAddress())
                 .collateralPayer(recipient.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!depositResult.isSuccessful()) {
@@ -114,21 +116,27 @@ public class EscrowDemo {
                 .payToAddress(initiator.baseAddress(), Amount.ada(1))
                 .from(initiator.baseAddress());
 
-        var completeResult = quickTx.compose(completeTx, feeTx)
+        var result = quickTx.compose(completeTx, feeTx)
                 .withSigner(SignerProviders.signerFrom(initiator))
                 .withSigner(SignerProviders.signerFrom(recipient))
                 .feePayer(initiator.baseAddress())
                 .collateralPayer(initiator.baseAddress())
                 .withRequiredSigners(initiatorPkh)
                 .withRequiredSigners(recipientPkh)
-                .complete();
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
+                .withTxInspector(transaction -> System.out.println(JsonUtil.getPrettyJson(transaction)))
+                //.complete();
+                .buildAndSign();
 
-        if (!completeResult.isSuccessful()) {
-            System.out.println("Complete trade failed: " + completeResult);
-            System.exit(1);
-        }
-        YaciHelper.waitForConfirmation(backend, completeResult.getValue());
-        System.out.println("Trade completed! Tx: " + completeResult.getValue());
-        System.out.println("Escrow demo completed successfully!");
+        System.out.println(JsonUtil.getPrettyJson(result));
+        System.out.println(result.serializeToHex());
+//
+//        if (!completeResult.isSuccessful()) {
+//            System.out.println("Complete trade failed: " + completeResult);
+//            System.exit(1);
+//        }
+//        YaciHelper.waitForConfirmation(backend, completeResult.getValue());
+//        System.out.println("Trade completed! Tx: " + completeResult.getValue());
+//        System.out.println("Escrow demo completed successfully!");
     }
 }

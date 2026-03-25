@@ -73,6 +73,7 @@ public class OneShotMintDemo {
                 .withSigner(SignerProviders.signerFrom(minter))
                 .feePayer(minterAddr)
                 .collateralPayer(minterAddr)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!mintResult.isSuccessful()) {

@@ -91,6 +91,7 @@ public class PaymentSplitterDemo {
                 .withSigner(SignerProviders.signerFrom(payee1))
                 .feePayer(payee1.baseAddress())
                 .collateralPayer(payee1.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!splitResult.isSuccessful()) {

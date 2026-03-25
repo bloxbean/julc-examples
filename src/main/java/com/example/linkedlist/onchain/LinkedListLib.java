@@ -45,7 +45,7 @@ public class LinkedListLib {
                                 byte[] rootKey, Address scriptAddr) {
         boolean atScript = Builtins.equalsData(rootOutput.address(), scriptAddr);
 
-        ListElement datum = (ListElement)(Object) OutputLib.getInlineDatum(rootOutput);
+        ListElement datum = PlutusData.cast(OutputLib.getInlineDatum(rootOutput), ListElement.class);
         boolean emptyNext = datum.nextKey().equals(Builtins.emptyByteString());
 
         BigInteger rootQty = ValuesLib.assetOf(mint, policyId, rootKey);
@@ -59,7 +59,7 @@ public class LinkedListLib {
 
     static boolean validateDeinit(TxOut rootInputResolved, Value mint, byte[] policyId,
                                   byte[] rootKey) {
-        ListElement datum = (ListElement)(Object) OutputLib.getInlineDatum(rootInputResolved);
+        ListElement datum = PlutusData.cast(OutputLib.getInlineDatum(rootInputResolved), ListElement.class);
         boolean emptyNext = datum.nextKey().equals(Builtins.emptyByteString());
 
         BigInteger rootQty = ValuesLib.assetOf(mint, policyId, rootKey);
@@ -97,9 +97,9 @@ public class LinkedListLib {
         boolean newAtScript = Builtins.equalsData(newElementOutput.address(), scriptAddr);
 
         // Extract datums
-        ListElement anchorOld = (ListElement)(Object) OutputLib.getInlineDatum(anchorInputResolved);
-        ListElement contAnchor = (ListElement)(Object) OutputLib.getInlineDatum(contAnchorOutput);
-        ListElement newElement = (ListElement)(Object) OutputLib.getInlineDatum(newElementOutput);
+        ListElement anchorOld = PlutusData.cast(OutputLib.getInlineDatum(anchorInputResolved), ListElement.class);
+        ListElement contAnchor = PlutusData.cast(OutputLib.getInlineDatum(contAnchorOutput), ListElement.class);
+        ListElement newElement = PlutusData.cast(OutputLib.getInlineDatum(newElementOutput), ListElement.class);
 
         // Anchor userData unchanged
         boolean dataUnchanged = Builtins.equalsData(anchorOld.userData(), contAnchor.userData());
@@ -137,9 +137,9 @@ public class LinkedListLib {
         byte[] removingKey = extractNodeKey(removingTokenName, prefixLen);
 
         // Extract datums
-        ListElement anchorDatum = (ListElement)(Object) OutputLib.getInlineDatum(anchorInputResolved);
-        ListElement removingDatum = (ListElement)(Object) OutputLib.getInlineDatum(removingInputResolved);
-        ListElement contDatum = (ListElement)(Object) OutputLib.getInlineDatum(contAnchorOutput);
+        ListElement anchorDatum = PlutusData.cast(OutputLib.getInlineDatum(anchorInputResolved), ListElement.class);
+        ListElement removingDatum = PlutusData.cast(OutputLib.getInlineDatum(removingInputResolved), ListElement.class);
+        ListElement contDatum = PlutusData.cast(OutputLib.getInlineDatum(contAnchorOutput), ListElement.class);
 
         // Anchor must link to the removing node
         boolean anchorLinksToRemoving = anchorDatum.nextKey().equals(removingKey);

@@ -100,6 +100,7 @@ public class Cip68NftDemo {
                 .withSigner(SignerProviders.signerFrom(minter))
                 .feePayer(minter.baseAddress())
                 .collateralPayer(minter.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!mintResult.isSuccessful()) {

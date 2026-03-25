@@ -125,6 +125,7 @@ class AtomicTxIntegrationTest {
         var tokenName = "0x" + "54657374"; // "Test"
         var asset = new Asset(tokenName, BigInteger.ONE);
 
+        // mintAsset 4-arg sends the minted token explicitly to account.baseAddress()
         var successTx = new ScriptTx()
                 .collectFrom(scriptUtxo, spendRedeemer)
                 .mintAsset(script, List.of(asset), correctMintRedeemer, account.baseAddress())

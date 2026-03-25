@@ -86,6 +86,7 @@ public class IdentityDemo {
                 .feePayer(owner.baseAddress())
                 .collateralPayer(owner.baseAddress())
                 .withRequiredSigners(ownerPkh)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!addResult.isSuccessful()) {
@@ -117,6 +118,7 @@ public class IdentityDemo {
                 .feePayer(owner.baseAddress())
                 .collateralPayer(owner.baseAddress())
                 .withRequiredSigners(ownerPkh)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!removeResult.isSuccessful()) {

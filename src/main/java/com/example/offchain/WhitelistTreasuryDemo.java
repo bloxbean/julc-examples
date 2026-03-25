@@ -122,6 +122,7 @@ public class WhitelistTreasuryDemo {
                 .withRequiredSigners(pkhA, pkhB)
                 .feePayer(signerA.baseAddress())
                 .collateralPayer(signerA.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!withdrawResult.isSuccessful()) {

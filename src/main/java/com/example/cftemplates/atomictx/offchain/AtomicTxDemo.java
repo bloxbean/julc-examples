@@ -88,6 +88,7 @@ public class AtomicTxDemo {
                 .feePayer(account.baseAddress())
                 .collateralPayer(account.baseAddress())
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         System.out.println("Wrong password result: " + (failResult.isSuccessful() ? "UNEXPECTED SUCCESS" : "Failed as expected"));
@@ -101,6 +102,7 @@ public class AtomicTxDemo {
                 .data(ListPlutusData.of(new BytesPlutusData("super_secret_password".getBytes())))
                 .build();
 
+        // mintAsset 4-arg sends the minted token explicitly to account.baseAddress()
         var successTx = new ScriptTx()
                 .collectFrom(scriptUtxo, spendRedeemer)
                 .mintAsset(script, List.of(asset), correctMintRedeemer, account.baseAddress())
@@ -112,6 +114,7 @@ public class AtomicTxDemo {
                 .feePayer(account.baseAddress())
                 .collateralPayer(account.baseAddress())
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!successResult.isSuccessful()) {

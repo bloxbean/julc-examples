@@ -55,6 +55,23 @@ class CfAtomicTxValidatorTest extends ContractTest {
             var result = evaluate(program, ctx);
             assertFailure(result);
         }
+
+        @Test
+        void emptyPassword_fails() throws Exception {
+            var compiled = compileValidator(CfAtomicTxValidator.class);
+            var program = compiled.program();
+
+            var redeemer = PlutusData.constr(0,
+                    PlutusData.bytes(new byte[0]));
+
+            var policyId = new PolicyId(new byte[28]);
+            var ctx = mintingContext(policyId)
+                    .redeemer(redeemer)
+                    .buildPlutusData();
+
+            var result = evaluate(program, ctx);
+            assertFailure(result);
+        }
     }
 
     @Nested
@@ -66,6 +83,24 @@ class CfAtomicTxValidatorTest extends ContractTest {
             var program = compiled.program();
 
             var datum = PlutusData.constr(1); // None
+            var redeemer = PlutusData.constr(0);
+
+            var ref = TestDataBuilder.randomTxOutRef_typed();
+            var ctx = spendingContext(ref, datum)
+                    .redeemer(redeemer)
+                    .buildPlutusData();
+
+            var result = evaluate(program, ctx);
+            assertSuccess(result);
+        }
+
+        @Test
+        void spendWithSomeDatum_passes() throws Exception {
+            var compiled = compileValidator(CfAtomicTxValidator.class);
+            var program = compiled.program();
+
+            // Some(Constr(0)) — datum with a value, confirming spend ignores it
+            var datum = PlutusData.constr(0, PlutusData.constr(0));
             var redeemer = PlutusData.constr(0);
 
             var ref = TestDataBuilder.randomTxOutRef_typed();

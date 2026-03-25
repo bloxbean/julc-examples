@@ -64,11 +64,11 @@ public class CfEscrowValidator {
 
         // Input datum must be Initiation
         PlutusData inputDatumData = OutputLib.getInlineDatum(ownInput);
-        Initiation initDatum = (Initiation)(Object) inputDatumData;
+        Initiation initDatum = PlutusData.cast(inputDatumData, Initiation.class);
 
         // Output datum must be ActiveEscrow
         PlutusData outputDatumData = OutputLib.getInlineDatum(continuingOutput);
-        ActiveEscrow activeDatum = (ActiveEscrow)(Object) outputDatumData;
+        ActiveEscrow activeDatum = PlutusData.cast(outputDatumData, ActiveEscrow.class);
 
         // Verify datum fields preserved correctly
         boolean initiatorCorrect = activeDatum.initiator().equals(initDatum.initiator());
@@ -95,11 +95,11 @@ public class CfEscrowValidator {
 
         if (tag == 0L) {
             // Initiation: initiator signs to cancel
-            Initiation initDatum = (Initiation)(Object) inputDatumData;
+            Initiation initDatum = PlutusData.cast(inputDatumData, Initiation.class);
             return ContextsLib.signedBy(txInfo, initDatum.initiator());
         }
         // ActiveEscrow: either party signs, both get assets back
-        ActiveEscrow activeDatum = (ActiveEscrow)(Object) inputDatumData;
+        ActiveEscrow activeDatum = PlutusData.cast(inputDatumData, ActiveEscrow.class);
         boolean eitherSigned = ContextsLib.signedBy(txInfo, activeDatum.initiator())
                 || ContextsLib.signedBy(txInfo, activeDatum.recipient());
 
@@ -117,7 +117,7 @@ public class CfEscrowValidator {
         if (!noContinuing) return false;
 
         PlutusData inputDatumData = OutputLib.getInlineDatum(ownInput);
-        ActiveEscrow activeDatum = (ActiveEscrow)(Object) inputDatumData;
+        ActiveEscrow activeDatum = PlutusData.cast(inputDatumData, ActiveEscrow.class);
 
         // Both must sign
         boolean initiatorSigned = ContextsLib.signedBy(txInfo, activeDatum.initiator());
@@ -160,7 +160,7 @@ public class CfEscrowValidator {
     }
 
     static TxOut findContinuingOutput(JulcList<TxOut> outputs, Address scriptAddr) {
-        TxOut result = (TxOut)(Object) Builtins.mkNilData();
+        TxOut result = PlutusData.cast(Builtins.mkNilData(), TxOut.class);
         for (var output : outputs) {
             if (Builtins.equalsData(output.address(), scriptAddr)) {
                 result = output;

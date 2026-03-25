@@ -105,6 +105,7 @@ public class VestingDemo {
                 .withRequiredSigners(beneficiaryPkh)
                 .feePayer(beneficiaryAddr)
                 .collateralPayer(beneficiaryAddr)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!unlockResult.isSuccessful()) {

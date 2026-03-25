@@ -108,6 +108,7 @@ public class LinkedListDemo {
                 .feePayer(user.baseAddress())
                 .collateralPayer(user.baseAddress())
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         checkResult(initResult, "Init");
@@ -146,6 +147,7 @@ public class LinkedListDemo {
                 .feePayer(user.baseAddress())
                 .collateralPayer(user.baseAddress())
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         checkResult(insertBBResult, "Insert BB");
@@ -184,6 +186,7 @@ public class LinkedListDemo {
                 .feePayer(user.baseAddress())
                 .collateralPayer(user.baseAddress())
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         checkResult(insertAAResult, "Insert AA");
@@ -222,6 +225,7 @@ public class LinkedListDemo {
                 .feePayer(user.baseAddress())
                 .collateralPayer(user.baseAddress())
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         checkResult(removeBBResult, "Remove BB");
@@ -260,6 +264,7 @@ public class LinkedListDemo {
                 .feePayer(user.baseAddress())
                 .collateralPayer(user.baseAddress())
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         checkResult(removeAAResult, "Remove AA");
@@ -291,6 +296,7 @@ public class LinkedListDemo {
                 .feePayer(user.baseAddress())
                 .collateralPayer(user.baseAddress())
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         checkResult(deinitResult, "Deinit");

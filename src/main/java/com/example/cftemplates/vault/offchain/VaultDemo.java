@@ -93,6 +93,7 @@ public class VaultDemo {
                 .collateralPayer(owner.baseAddress())
                 .withRequiredSigners(ownerPkh)
                 .validFrom(currentSlot)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!finalizeResult.isSuccessful()) {

@@ -75,6 +75,7 @@ public class MultiSigMintingDemo {
                 .withRequiredSigners(authPkh)
                 .feePayer(authority.baseAddress())
                 .collateralPayer(authority.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!authResult.isSuccessful()) {
@@ -104,6 +105,7 @@ public class MultiSigMintingDemo {
                 .withRequiredSigners(signer1Pkh, signer2Pkh)
                 .feePayer(signer1.baseAddress())
                 .collateralPayer(signer1.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!multiResult.isSuccessful()) {

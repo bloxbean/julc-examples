@@ -82,6 +82,7 @@ public class SimpleTransferDemo {
                 .feePayer(receiver.baseAddress())
                 .collateralPayer(receiver.baseAddress())
                 .withRequiredSigners(receiverPkh)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!unlockResult.isSuccessful()) {

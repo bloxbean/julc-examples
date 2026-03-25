@@ -95,6 +95,7 @@ public class CrowdfundDemo {
                 .withSigner(SignerProviders.signerFrom(donor2))
                 .feePayer(donor2.baseAddress())
                 .collateralPayer(donor2.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!donateResult.isSuccessful()) {
@@ -124,6 +125,7 @@ public class CrowdfundDemo {
                 .collateralPayer(beneficiary.baseAddress())
                 .withRequiredSigners(beneficiaryPkh)
                 .validFrom(currentSlot)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!withdrawResult.isSuccessful()) {

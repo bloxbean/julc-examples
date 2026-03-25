@@ -96,6 +96,7 @@ public class ProxyDemo {
                 .collateralPayer(owner.baseAddress())
                 .withRequiredSigners(ownerPkh)
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!initResult.isSuccessful()) {
@@ -139,6 +140,7 @@ public class ProxyDemo {
                 .feePayer(owner.baseAddress())
                 .collateralPayer(owner.baseAddress())
                 .withRequiredSigners(ownerPkh)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!updateResult.isSuccessful()) {

@@ -7,8 +7,8 @@ group = 'com.example'
 version = '0.1.0'
 
 ext {
-    julcVersion = '0.1.0-pre3'
-    cardanoClientLibVersion = '0.8.0-preview1'
+    julcVersion = '0.1.0-pre8'
+    cardanoClientLibVersion = '0.8.0-pre2'
 }
 
 repositories {
@@ -54,6 +54,8 @@ dependencies {
     // Runtime — JulcScriptLoader for loading compiled scripts at runtime
     implementation "com.bloxbean.cardano:julc-annotation-processor:${julcVersion}"
 
+    runtimeOnly "com.bloxbean.cardano:julc-vm-java:${julcVersion}"
+
     // cardano-client-lib — off-chain transaction building
     implementation "com.bloxbean.cardano:cardano-client-lib:${cardanoClientLibVersion}"
     implementation "com.bloxbean.cardano:cardano-client-merkle-patricia-forestry-rocksdb:${cardanoClientLibVersion}"
@@ -62,9 +64,12 @@ dependencies {
     // Test dependencies
     testImplementation 'org.bouncycastle:bcprov-jdk18on:1.83'
     testImplementation "com.bloxbean.cardano:julc-testkit:${julcVersion}"
+    testImplementation "com.bloxbean.cardano:julc-testkit-jqwik:${julcVersion}"
     testImplementation "com.bloxbean.cardano:julc-compiler:${julcVersion}"
     testImplementation "com.bloxbean.cardano:julc-stdlib:${julcVersion}"
-    testRuntimeOnly "com.bloxbean.cardano:julc-vm-scalus:${julcVersion}"
+    testRuntimeOnly "com.bloxbean.cardano:julc-vm-java:${julcVersion}"
+    testImplementation "com.bloxbean.cardano:julc-vm-truffle:${julcVersion}"  // For JulcDebugger API
+    testImplementation 'net.jqwik:jqwik:1.9.2'
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -81,4 +86,6 @@ application {
     mainClass = project.findProperty('mainClass') ?: 'com.example.offchain.VestingDemo'
 }
 
-
+//tasks.named('compileJava') {
+//    options.compilerArgs += ["-Ajulc.sourceMap=true"]
+//}

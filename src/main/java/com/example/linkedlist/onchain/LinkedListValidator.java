@@ -41,12 +41,12 @@ public class LinkedListValidator {
     public static boolean mint(ListAction redeemer, ScriptContext ctx) {
         TxInfo txInfo = ctx.txInfo();
         ScriptInfo.MintingScript mintInfo = (ScriptInfo.MintingScript) ctx.scriptInfo();
-        byte[] policyBytes = (byte[])(Object) mintInfo.policyId();
+        byte[] policyBytes = PlutusData.cast(mintInfo.policyId(), byte[].class);
 
         return switch (redeemer) {
             case InitList init -> {
                 Address scriptAddr = new Address(
-                        new Credential.ScriptCredential((ScriptHash)(Object) policyBytes),
+                        new Credential.ScriptCredential(PlutusData.cast(policyBytes, ScriptHash.class)),
                         Optional.empty());
                 TxOut rootOutput = txInfo.outputs().get(init.rootOutputIndex().intValue());
                 yield LinkedListLib.validateInit(
@@ -59,7 +59,7 @@ public class LinkedListValidator {
             }
             case InsertNode insert -> {
                 Address scriptAddr = new Address(
-                        new Credential.ScriptCredential((ScriptHash)(Object) policyBytes),
+                        new Credential.ScriptCredential(PlutusData.cast(policyBytes, ScriptHash.class)),
                         Optional.empty());
                 TxInInfo anchorInput = txInfo.inputs().get(insert.anchorInputIndex().intValue());
                 TxOut contAnchorOutput = txInfo.outputs().get(insert.contAnchorOutputIndex().intValue());
@@ -70,7 +70,7 @@ public class LinkedListValidator {
             }
             case RemoveNode remove -> {
                 Address scriptAddr = new Address(
-                        new Credential.ScriptCredential((ScriptHash)(Object) policyBytes),
+                        new Credential.ScriptCredential(PlutusData.cast(policyBytes, ScriptHash.class)),
                         Optional.empty());
                 TxInInfo anchorInput = txInfo.inputs().get(remove.anchorInputIndex().intValue());
                 TxInInfo removingInput = txInfo.inputs().get(remove.removingInputIndex().intValue());

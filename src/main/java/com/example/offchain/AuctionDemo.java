@@ -113,6 +113,7 @@ public class AuctionDemo {
                 .withRequiredSigners(bidderPkh)
                 .feePayer(bidder.baseAddress())
                 .collateralPayer(bidder.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!bidResult.isSuccessful()) {

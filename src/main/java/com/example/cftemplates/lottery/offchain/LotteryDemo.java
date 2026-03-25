@@ -96,6 +96,7 @@ public class LotteryDemo {
                 .withRequiredSigners(p1Pkh)
                 .withRequiredSigners(p2Pkh)
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!createResult.isSuccessful()) {
@@ -130,6 +131,7 @@ public class LotteryDemo {
                 .feePayer(player1.baseAddress())
                 .collateralPayer(player1.baseAddress())
                 .withRequiredSigners(p1Pkh)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!reveal1Result.isSuccessful()) {
@@ -164,6 +166,7 @@ public class LotteryDemo {
                 .feePayer(player2.baseAddress())
                 .collateralPayer(player2.baseAddress())
                 .withRequiredSigners(p2Pkh)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!reveal2Result.isSuccessful()) {
@@ -213,6 +216,7 @@ public class LotteryDemo {
                 .collateralPayer(winner.baseAddress())
                 .withRequiredSigners(winnerPkh)
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!settleResult.isSuccessful()) {

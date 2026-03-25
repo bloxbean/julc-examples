@@ -2,13 +2,20 @@ package com.example.offchain;
 
 import com.bloxbean.cardano.client.api.model.Utxo;
 import com.bloxbean.cardano.client.backend.api.BackendService;
+import com.bloxbean.cardano.client.backend.api.DefaultProtocolParamsSupplier;
+import com.bloxbean.cardano.client.backend.api.DefaultScriptSupplier;
+import com.bloxbean.cardano.client.backend.api.DefaultUtxoSupplier;
 import com.bloxbean.cardano.client.backend.blockfrost.service.BFBackendService;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
+import com.bloxbean.cardano.julc.clientlib.eval.JulcTransactionEvaluator;
+import com.bloxbean.cardano.julc.clientlib.eval.SlotConfig;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Shared helper for connecting to Yaci Devkit and managing test accounts.
@@ -22,7 +29,61 @@ public final class YaciHelper {
     public static final String YACI_BASE_URL = "http://localhost:8080/api/v1/";
     public static final String YACI_ADMIN_URL = "http://localhost:10000";
 
+    /** Set to true to use JulcTransactionEvaluator for local script evaluation instead of backend /evaluate endpoint. */
+    public static final boolean USE_JULC_EVALUATOR = true;
+
     private YaciHelper() {}
+
+    /**
+     * Returns a JulcTransactionEvaluator if USE_JULC_EVALUATOR is true, otherwise null.
+     * When null is passed to .withTxEvaluator(null), QuickTxBuilder uses the default backend evaluation.
+     */
+    public static JulcTransactionEvaluator julcEvaluator(BackendService backend) {
+        if (!USE_JULC_EVALUATOR) return null;
+        SlotConfig slotConfig = deriveSlotConfig();
+        return new JulcTransactionEvaluator(
+                new DefaultUtxoSupplier(backend.getUtxoService()),
+                new DefaultProtocolParamsSupplier(backend.getEpochService()),
+                new DefaultScriptSupplier(backend.getScriptService()),
+                slotConfig);
+    }
+
+    /**
+     * Derive SlotConfig from the Yaci Devkit admin API.
+     * Queries the devnet genesis info to get startTime and slotLength,
+     * then constructs a SlotConfig where slot 0 maps to the genesis start time.
+     */
+    private static SlotConfig deriveSlotConfig() {
+        try {
+            var client = HttpClient.newHttpClient();
+            var request = HttpRequest.newBuilder()
+                    .uri(URI.create(YACI_ADMIN_URL + "/local-cluster/api/admin/devnet"))
+                    .GET().build();
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                System.err.println("WARNING: Could not derive SlotConfig from Yaci Devkit: HTTP " + response.statusCode());
+                return null;
+            }
+            long startTime = parseJsonLong(response.body(), "startTime");
+            double slotLength = parseJsonDouble(response.body(), "slotLength");
+            return new SlotConfig(0, startTime * 1000, (long) (slotLength * 1000));
+        } catch (Exception e) {
+            System.err.println("WARNING: Could not derive SlotConfig from Yaci Devkit: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private static long parseJsonLong(String json, String key) {
+        Matcher m = Pattern.compile("\"" + key + "\"\\s*:\\s*(-?\\d+)").matcher(json);
+        if (!m.find()) throw new IllegalArgumentException("Key not found in JSON: " + key);
+        return Long.parseLong(m.group(1));
+    }
+
+    private static double parseJsonDouble(String json, String key) {
+        Matcher m = Pattern.compile("\"" + key + "\"\\s*:\\s*(-?[\\d.]+)").matcher(json);
+        if (!m.find()) throw new IllegalArgumentException("Key not found in JSON: " + key);
+        return Double.parseDouble(m.group(1));
+    }
 
     /**
      * Create a BackendService connected to the local Yaci Devkit node.

@@ -103,6 +103,7 @@ public class PriceBetDemo {
                 .collateralPayer(player.baseAddress())
                 .withRequiredSigners(playerPkh)
                 .validFrom(currentSlot)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!joinResult.isSuccessful()) {
@@ -162,6 +163,7 @@ public class PriceBetDemo {
                 .collateralPayer(owner.baseAddress())
                 .withRequiredSigners(ownerPkh)
                 .validFrom(currentSlot)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!timeoutResult.isSuccessful()) {

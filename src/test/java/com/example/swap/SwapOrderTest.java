@@ -261,7 +261,7 @@ class SwapOrderTest extends ContractTest {
 
         @Test
         void fill_rejectsInsufficientPayment() throws Exception {
-            var program = compileValidator(SwapOrder.class).program();
+            var compiled = compileValidatorWithSourceMap(SwapOrder.class);
 
             var datum = adaDatum();
             var redeemer = fillRedeemer();
@@ -275,9 +275,15 @@ class SwapOrderTest extends ContractTest {
                     .output(output)
                     .buildPlutusData();
 
-            var result = evaluate(program, ctx);
-            assertFailure(result);
+            var result = evaluate(compiled.program(), ctx);
+            assertFailure(result, compiled.sourceMap());
+
+            logResult("cancel_rejectInsufficientPayment", result, compiled.sourceMap());
+
             logBudget("fill_rejectsInsufficientPayment", result);
+
+            var location = resolveErrorLocation(result, compiled.sourceMap());
+            System.out.println("Error at: " + location);
         }
 
         @Test
@@ -372,7 +378,7 @@ class SwapOrderTest extends ContractTest {
         }
 
         private final SwapOrderProxy proxy =
-                JulcEval.forClass(SwapOrder.class).create(SwapOrderProxy.class);
+                JulcEval.forClass(SwapOrder.class).sourceMap().create(SwapOrderProxy.class);
 
         @Test
         void makerAddress_returnsCorrectAddress() {
@@ -397,7 +403,7 @@ class SwapOrderTest extends ContractTest {
         // Fluent call alternative — no proxy interface needed
         @Test
         void makerAddress_fluentCall() {
-            var eval = JulcEval.forClass(SwapOrder.class);
+            var eval = JulcEval.forClass(SwapOrder.class).sourceMap();
             PlutusData result = eval.call("makerAddress", MAKER).asData();
             assertNotNull(result);
             var expected = PlutusData.constr(0,

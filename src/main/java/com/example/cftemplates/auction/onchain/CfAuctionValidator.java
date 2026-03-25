@@ -43,12 +43,12 @@ public class CfAuctionValidator {
     public static boolean mint(PlutusData redeemer, ScriptContext ctx) {
         TxInfo txInfo = ctx.txInfo();
         ScriptInfo.MintingScript mintInfo = (ScriptInfo.MintingScript) ctx.scriptInfo();
-        byte[] policyBytes = (byte[])(Object) mintInfo.policyId();
+        byte[] policyBytes = PlutusData.cast(mintInfo.policyId(), byte[].class);
 
         // Find output to script address
         TxOut auctionOutput = findOutputToScript(txInfo.outputs(), policyBytes);
         PlutusData datumData = OutputLib.getInlineDatum(auctionOutput);
-        AuctionDatum auctionDatum = (AuctionDatum)(Object) datumData;
+        AuctionDatum auctionDatum = PlutusData.cast(datumData, AuctionDatum.class);
 
         boolean sellerSigned = ContextsLib.signedBy(txInfo, auctionDatum.seller());
         boolean noBidderYet = auctionDatum.highestBidder().equals(Builtins.emptyByteString());
@@ -70,7 +70,7 @@ public class CfAuctionValidator {
 
         TxOut ownInput = ContextsLib.findOwnInput(ctx).get().resolved();
         PlutusData datumData = OutputLib.getInlineDatum(ownInput);
-        AuctionDatum currentDatum = (AuctionDatum)(Object) datumData;
+        AuctionDatum currentDatum = PlutusData.cast(datumData, AuctionDatum.class);
 
         return switch (redeemer) {
             case Bid b -> handleBid(txInfo, ownInput, currentDatum);
@@ -86,7 +86,7 @@ public class CfAuctionValidator {
         // Find continuing output
         TxOut continuingOutput = findContinuingOutput(txInfo.outputs(), scriptAddress);
         PlutusData outDatumData = OutputLib.getInlineDatum(continuingOutput);
-        AuctionDatum newDatum = (AuctionDatum)(Object) outDatumData;
+        AuctionDatum newDatum = PlutusData.cast(outDatumData, AuctionDatum.class);
         BigInteger outputLovelace = ValuesLib.lovelaceOf(continuingOutput.value());
 
         BigInteger upperBound = IntervalLib.finiteUpperBound(txInfo.validRange());
@@ -182,7 +182,7 @@ public class CfAuctionValidator {
     }
 
     static TxOut findOutputToScript(JulcList<TxOut> outputs, byte[] policyBytes) {
-        TxOut result = (TxOut)(Object) Builtins.mkNilData();
+        TxOut result = PlutusData.cast(Builtins.mkNilData(), TxOut.class);
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
             if (credHash.equals(policyBytes)) {
@@ -194,7 +194,7 @@ public class CfAuctionValidator {
     }
 
     static TxOut findContinuingOutput(JulcList<TxOut> outputs, Address scriptAddr) {
-        TxOut result = (TxOut)(Object) Builtins.mkNilData();
+        TxOut result = PlutusData.cast(Builtins.mkNilData(), TxOut.class);
         for (var output : outputs) {
             if (Builtins.equalsData(output.address(), scriptAddr)) {
                 result = output;

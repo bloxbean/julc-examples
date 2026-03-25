@@ -40,9 +40,9 @@ public class BetDemo {
         byte[] player2Pkh = player2.hdKeyPair().getPublicKey().getKeyHash();
         byte[] oraclePkh = oracle.hdKeyPair().getPublicKey().getKeyHash();
 
-        // Expiration 15 seconds in the future — enough time for CREATE + JOIN,
-        // then we wait for it to pass before ANNOUNCE_WINNER
-        BigInteger expiration = BigInteger.valueOf(System.currentTimeMillis() + 15_000);
+        // Expiration 120 seconds in the future — enough headroom for CREATE + JOIN
+        // (topups + tx building consume ~12s, and validTo adds ~10s to upper bound)
+        BigInteger expiration = BigInteger.valueOf(System.currentTimeMillis() + 120_000);
         BigInteger betAmount = BigInteger.valueOf(10_000_000); // 10 ADA
 
         YaciHelper.topUp(player1.baseAddress(), 1000);
@@ -89,6 +89,8 @@ public class BetDemo {
                 .collateralPayer(player1.baseAddress())
                 .withRequiredSigners(player1Pkh)
                 .validTo(currentSlot + 10) // upper bound before expiration
+                .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!createResult.isSuccessful()) {
@@ -127,6 +129,7 @@ public class BetDemo {
                 .collateralPayer(player2.baseAddress())
                 .withRequiredSigners(player2Pkh)
                 .validTo(currentSlot + 10) // upper bound before expiration
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!joinResult.isSuccessful()) {
@@ -165,6 +168,7 @@ public class BetDemo {
                 .collateralPayer(oracle.baseAddress())
                 .withRequiredSigners(oraclePkh)
                 .validFrom(currentSlot) // lower bound after expiration
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!announceResult.isSuccessful()) {

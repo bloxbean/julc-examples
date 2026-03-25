@@ -36,9 +36,9 @@ public class AuctionDemo {
         byte[] sellerPkh = seller.hdKeyPair().getPublicKey().getKeyHash();
         byte[] bidderPkh = bidder.hdKeyPair().getPublicKey().getKeyHash();
 
-        // Expiration 15 seconds in the future — enough for CREATE + BID,
-        // then we wait for it to pass before END
-        BigInteger expiration = BigInteger.valueOf(System.currentTimeMillis() + 15_000);
+        // Expiration 120 seconds in the future — enough headroom for CREATE + BID
+        // (topups + tx building consume ~10s, and validTo adds ~10s to upper bound)
+        BigInteger expiration = BigInteger.valueOf(System.currentTimeMillis() + 120_000);
 
         YaciHelper.topUp(seller.baseAddress(), 1000);
         YaciHelper.topUp(bidder.baseAddress(), 1000);
@@ -82,6 +82,7 @@ public class AuctionDemo {
                 .withRequiredSigners(sellerPkh)
                 .validTo(currentSlot + 10) // before expiration
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!createResult.isSuccessful()) {
@@ -122,6 +123,7 @@ public class AuctionDemo {
                 .collateralPayer(bidder.baseAddress())
                 .withRequiredSigners(bidderPkh)
                 .validTo(currentSlot + 10) // before expiration
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!bidResult.isSuccessful()) {
@@ -160,6 +162,7 @@ public class AuctionDemo {
                 .feePayer(seller.baseAddress())
                 .collateralPayer(seller.baseAddress())
                 .validFrom(currentSlot) // after expiration
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!endResult.isSuccessful()) {

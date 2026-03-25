@@ -81,6 +81,7 @@ public class FactoryDemo {
                 .collateralPayer(owner.baseAddress())
                 .withRequiredSigners(ownerPkh)
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!mintResult.isSuccessful()) {
@@ -146,6 +147,7 @@ public class FactoryDemo {
                 .collateralPayer(owner.baseAddress())
                 .withRequiredSigners(ownerPkh)
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!createResult.isSuccessful()) {

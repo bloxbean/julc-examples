@@ -12,6 +12,7 @@ import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
+import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
 import com.example.offchain.YaciHelper;
 import com.example.swap.onchain.SwapOrder;
@@ -40,7 +41,8 @@ public class SwapOrderDemo {
         }
 
         // 1. Load pre-compiled validator (no params)
-        var script = JulcScriptLoader.load(SwapOrder.class);
+        var loadResult = JulcScriptLoader.loadWithSourceMap(SwapOrder.class);
+        var script = loadResult.script();
         var scriptAddr = AddressProvider.getEntAddress(script, Networks.testnet()).toBech32();
         System.out.println("Script address: " + scriptAddr);
 
@@ -109,10 +111,15 @@ public class SwapOrderDemo {
                 .payToAddress(maker.enterpriseAddress(), Amount.ada(45))
                 .attachSpendingValidator(script);
 
+        var julcEvaluator = YaciHelper.julcEvaluator(backend);
+        julcEvaluator.enableTracing(true);
+        julcEvaluator.registerScript(HexUtil.encodeHexString(script.getScriptHash()), loadResult);
         var fillResult = quickTx.compose(fillTx)
                 .withSigner(SignerProviders.signerFrom(taker))
                 .feePayer(taker.baseAddress())
                 .collateralPayer(taker.baseAddress())
+                .withTxEvaluator(julcEvaluator)
+                .ignoreScriptCostEvaluationError(true)
                 .complete();
 
         if (!fillResult.isSuccessful()) {

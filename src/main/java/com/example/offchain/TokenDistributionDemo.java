@@ -126,6 +126,7 @@ public class TokenDistributionDemo {
                 .withRequiredSigners(adminPkh)
                 .feePayer(admin.baseAddress())
                 .collateralPayer(admin.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!distributeResult.isSuccessful()) {

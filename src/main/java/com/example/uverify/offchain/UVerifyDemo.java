@@ -193,6 +193,7 @@ public class UVerifyDemo {
                 .withRequiredSigners(adminPkh)
                 .feePayer(admin.baseAddress())
                 .collateralPayer(admin.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!mintInitResult.isSuccessful()) {
@@ -267,6 +268,7 @@ public class UVerifyDemo {
                 .withRequiredSigners(adminPkh)
                 .feePayer(admin.baseAddress())
                 .collateralPayer(admin.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!mintBootstrapResult.isSuccessful()) {
@@ -321,6 +323,7 @@ public class UVerifyDemo {
                 .withRequiredSigners(adminPkh)
                 .feePayer(admin.baseAddress())
                 .collateralPayer(admin.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!burnResult.isSuccessful()) {

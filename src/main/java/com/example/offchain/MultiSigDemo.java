@@ -104,6 +104,7 @@ public class MultiSigDemo {
                 .withRequiredSigners(pkh1, pkh2)
                 .feePayer(signer1.baseAddress())
                 .collateralPayer(signer1.baseAddress())
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!unlockResult.isSuccessful()) {

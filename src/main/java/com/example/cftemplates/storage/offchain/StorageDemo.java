@@ -2,7 +2,6 @@ package com.example.cftemplates.storage.offchain;
 
 import com.bloxbean.cardano.client.account.Account;
 import com.bloxbean.cardano.client.address.AddressProvider;
-import com.bloxbean.cardano.client.api.model.Amount;
 import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
@@ -87,6 +86,7 @@ public class StorageDemo {
                 .feePayer(minter.baseAddress())
                 .collateralPayer(minter.baseAddress())
                 .ignoreScriptCostEvaluationError(true)
+                .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 
         if (!mintResult.isSuccessful()) {

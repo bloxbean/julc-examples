@@ -7,8 +7,8 @@ group = 'com.example'
 version = '0.1.0'
 
 ext {
-    julcVersion = '0.1.0-pre10'
-    cardanoClientLibVersion = '0.8.0-pre3'
+    julcVersion = '0.1.0-pre11'
+    cardanoClientLibVersion = '0.8.0-pre4'
 }
 
 repositories {
@@ -23,10 +23,10 @@ repositories {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_24
-    targetCompatibility = JavaVersion.VERSION_24
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
     toolchain {
-        languageVersion = JavaLanguageVersion.of(24)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 

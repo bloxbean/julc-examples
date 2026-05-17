@@ -82,12 +82,12 @@ class SourceMapDebugDemoTest extends ContractTest {
     void staticApi_evaluateWithTrace() {
         CompileResult compiled = ValidatorTest.compileValidatorWithSourceMap(EscrowValidator.class);
 
-        var evalWithTrace = ValidatorTest.evaluateWithTrace(compiled, passingCompleteCtx());
-        assertSuccess(evalWithTrace.result());
+        EvalResult evalWithTrace = ValidatorTest.evaluateWithTrace(compiled, passingCompleteCtx());
+        assertSuccess(evalWithTrace);
 
         System.out.println();
         System.out.println("=== ValidatorTest.evaluateWithTrace (static API) ===");
-        System.out.print(evalWithTrace.formatTrace());
+        System.out.print(ExecutionTraceEntry.format(evalWithTrace.executionTrace()));
         System.out.println();
     }
 
@@ -97,12 +97,12 @@ class SourceMapDebugDemoTest extends ContractTest {
     void staticApi_budgetSummary() {
         CompileResult compiled = ValidatorTest.compileValidatorWithSourceMap(EscrowValidator.class);
 
-        var evalWithTrace = ValidatorTest.evaluateWithTrace(compiled, passingCompleteCtx());
-        assertSuccess(evalWithTrace.result());
+        EvalResult evalWithTrace = ValidatorTest.evaluateWithTrace(compiled, passingCompleteCtx());
+        assertSuccess(evalWithTrace);
 
         System.out.println();
         System.out.println("=== BUDGET SUMMARY: EscrowValidator (static API) ===");
-        System.out.print(evalWithTrace.formatBudgetSummary());
+        System.out.print(ExecutionTraceEntry.formatSummary(evalWithTrace.executionTrace()));
         System.out.println();
     }
 

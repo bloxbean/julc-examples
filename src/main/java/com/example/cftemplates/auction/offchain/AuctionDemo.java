@@ -81,7 +81,6 @@ public class AuctionDemo {
                 .collateralPayer(seller.baseAddress())
                 .withRequiredSigners(sellerPkh)
                 .validTo(currentSlot + 10) // before expiration
-                .ignoreScriptCostEvaluationError(true)
                 .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 

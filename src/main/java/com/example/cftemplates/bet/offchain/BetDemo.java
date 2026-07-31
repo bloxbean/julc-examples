@@ -89,7 +89,6 @@ public class BetDemo {
                 .collateralPayer(player1.baseAddress())
                 .withRequiredSigners(player1Pkh)
                 .validTo(currentSlot + 10) // upper bound before expiration
-                .ignoreScriptCostEvaluationError(true)
                 .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 

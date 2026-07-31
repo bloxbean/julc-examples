@@ -3,6 +3,7 @@ package com.example.uverify.onchain;
 import com.bloxbean.cardano.julc.core.PlutusData;
 import com.bloxbean.cardano.julc.core.types.JulcList;
 import com.bloxbean.cardano.julc.ledger.*;
+import com.bloxbean.cardano.julc.stdlib.Builtins;
 import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
 import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
 import com.bloxbean.cardano.julc.stdlib.annotation.Param;
@@ -111,13 +112,8 @@ public class UVerifyFeePot {
     static byte[] buildExpectedMessage(byte[] signerPkhHex, byte[] submitterKeyHashHex, BigInteger ttl) {
         byte[] colon = ByteStringLib.cons(58, ByteStringLib.empty()); // ':'
         byte[] ttlStr = ByteStringLib.intToDecimalString(ttl);
-        return ByteStringLib.append(
-                ByteStringLib.append(
-                        ByteStringLib.append(
-                                ByteStringLib.append(signerPkhHex, colon),
-                                submitterKeyHashHex),
-                        colon),
-                ttlStr);
+        return Builtins.concat(
+                signerPkhHex, colon, submitterKeyHashHex, colon, ttlStr);
     }
 
     static BigInteger sumLovelaceAtWhitelistedScripts(JulcList<TxOut> outputs) {

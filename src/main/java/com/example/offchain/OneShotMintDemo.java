@@ -4,6 +4,7 @@ import com.bloxbean.cardano.client.account.Account;
 import com.bloxbean.cardano.client.address.Address;
 import com.bloxbean.cardano.client.api.model.Utxo;
 import com.bloxbean.cardano.client.common.model.Networks;
+import com.bloxbean.cardano.client.crypto.Blake2bUtil;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
@@ -12,6 +13,9 @@ import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import com.bloxbean.cardano.julc.ledger.TxId;
+import com.bloxbean.cardano.julc.ledger.TxOutRef;
+import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
 import com.example.validators.OneShotMintPolicy;
 
 import java.math.BigInteger;
@@ -60,9 +64,17 @@ public class OneShotMintDemo {
                 BigIntPlutusData.of(utxoIndex));
         System.out.println("Policy loaded (parameterized)");
 
-        // 4. Mint 1 UniqueNFT token
-        System.out.println("\n--- Minting 1 UniqueNFT ---");
-        var asset = new Asset("UniqueNFT", BigInteger.ONE);
+        // 4. Derive the canonical 32-byte token name from the consumed seed.
+        // ValuesLib.refBytes is JVM/UPLC-identical; Blake2bUtil is the off-chain
+        // equivalent of the policy's ValuesLib.uniqueTokenName(seedRef).
+        var seedRef = new TxOutRef(new TxId(utxoTxId), utxoIndex);
+        byte[] tokenName = Blake2bUtil.blake2bHash256(ValuesLib.refBytes(seedRef));
+        String tokenNameHex = HexUtil.encodeHexString(tokenName);
+        System.out.println("Canonical token name: " + tokenNameHex);
+
+        // 5. Mint exactly one token with that canonical name.
+        System.out.println("\n--- Minting canonical one-shot NFT ---");
+        var asset = new Asset("0x" + tokenNameHex, BigInteger.ONE);
         var redeemer = BigIntPlutusData.of(0); // unused redeemer
 
         var mintTx = new ScriptTx()

@@ -1,5 +1,4 @@
-JULC compile code : /Users/satya/work/bloxbean/julc
-UVerify validator repo: https://github.com/UVerify-io/uverify-scripts.git
+JULC compile code : ../julc
 
 Yaci Devkit admin API documentation: http://localhost:10000/v3/api-docs
 Use Yaci DevKit admin's reset endpoint to reset the devnet before running test

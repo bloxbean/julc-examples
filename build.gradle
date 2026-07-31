@@ -1,13 +1,14 @@
 plugins {
     id 'java'
     id 'application'
+    id 'com.bloxbean.cardano.julc' version '0.1.0-pre15'
 }
 
 group = 'com.example'
 version = '0.1.0'
 
 ext {
-    julcVersion = '0.1.0-pre12'
+    julcVersion = '0.1.0-pre15'
     cardanoClientLibVersion = '0.8.0-pre4'
 }
 
@@ -68,7 +69,8 @@ dependencies {
     testImplementation "com.bloxbean.cardano:julc-compiler:${julcVersion}"
     testImplementation "com.bloxbean.cardano:julc-stdlib:${julcVersion}"
     testRuntimeOnly "com.bloxbean.cardano:julc-vm-java:${julcVersion}"
-    testImplementation "com.bloxbean.cardano:julc-vm-truffle:${julcVersion}"  // For JulcDebugger API
+//    testImplementation "com.bloxbean.cardano:julc-vm-truffle:${julcVersion}"  // For JulcDebugger API
+//    testImplementation "com.bloxbean.cardano:julc-vm-scalus:${julcVersion}"   // Scalus VM backend — cross-VM budget comparison
     testImplementation 'net.jqwik:jqwik:1.9.2'
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'

@@ -1,6 +1,5 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.stdlib.annotation.MintingPolicy;
 import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
 import com.bloxbean.cardano.julc.stdlib.annotation.MintingValidator;
 import com.bloxbean.cardano.julc.ledger.ScriptContext;

@@ -453,8 +453,7 @@ public class UVerifyV1 {
     }
 
     static byte[] certificateToByteArray(UVerifyCertificate cert) {
-        byte[] base = ByteStringLib.append(
-                ByteStringLib.append(cert.hash(), cert.algorithm()), cert.issuer());
+        byte[] base = Builtins.concat(cert.hash(), cert.algorithm(), cert.issuer());
         byte[] result = base;
         for (var extra : cert.extra()) {
             result = ByteStringLib.append(result, extra);

@@ -3,6 +3,7 @@ package com.example.nft;
 import com.bloxbean.cardano.client.account.Account;
 import com.bloxbean.cardano.client.address.AddressProvider;
 import com.bloxbean.cardano.client.api.model.Amount;
+import com.bloxbean.cardano.client.api.model.Utxo;
 import com.bloxbean.cardano.client.backend.api.BackendService;
 import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
@@ -21,6 +22,7 @@ import com.example.offchain.YaciHelper;
 import org.junit.jupiter.api.*;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -46,13 +48,15 @@ class Cip68NftIntegrationTest {
     static byte[] refTokenName;
     static byte[] userTokenName;
     static String mintTxHash;
+    static String updateTxHash;
 
     @BeforeAll
     static void setup() throws Exception {
         yaciAvailable = YaciHelper.isYaciReachable();
         if (!yaciAvailable) return;
 
-        byte[] assetName = "TestNFT".getBytes();
+        byte[] assetName = ("TestNFT" + Long.toHexString(System.currentTimeMillis()))
+                .getBytes(StandardCharsets.UTF_8);
         refTokenName = concat(REF_PREFIX, assetName);
         userTokenName = concat(USER_PREFIX, assetName);
 
@@ -86,11 +90,17 @@ class Cip68NftIntegrationTest {
 
         var mintRedeemer = ConstrPlutusData.of(0); // MintNft
 
-        // Mint both tokens in a single mintAsset call — multiple mintAsset calls on the
-        // same policy don't merge correctly. Both tokens go to the script address with
-        // inline datum; the validator only requires the ref token to be there.
+        var refUnit = policyId + HexUtil.encodeHexString(refTokenName);
+        var userUnit = policyId + HexUtil.encodeHexString(userTokenName);
+
+        // Mint both tokens in a single mintAsset call. The reference token is locked
+        // at the script with inline metadata; the user token stays at the minter.
         var mintTx = new ScriptTx()
-                .mintAsset(script, List.of(refAsset, userAsset), mintRedeemer, scriptAddr, metadataDatum);
+                .mintAsset(script, List.of(refAsset, userAsset), mintRedeemer)
+                .payToContract(scriptAddr,
+                        List.of(Amount.ada(2), new Amount(refUnit, BigInteger.ONE)),
+                        metadataDatum)
+                .payToAddress(minter.baseAddress(), List.of(new Amount(userUnit, BigInteger.ONE)));
 
         var result = quickTx.compose(mintTx)
                 .withSigner(SignerProviders.signerFrom(minter))
@@ -148,21 +158,20 @@ class Cip68NftIntegrationTest {
                 .complete();
 
         assertTrue(result.isSuccessful(), "Update tx should succeed: " + result);
-        YaciHelper.waitForConfirmation(backend, result.getValue());
-        System.out.println("Step 3 OK: Updated metadata, tx=" + result.getValue());
+        updateTxHash = result.getValue();
+        YaciHelper.waitForConfirmation(backend, updateTxHash);
+        System.out.println("Step 3 OK: Updated metadata, tx=" + updateTxHash);
     }
 
     @Test
     @Order(4)
     void step4_burnBothTokens() throws Exception {
         assumeTrue(yaciAvailable, "Yaci DevKit not available");
+        assertNotNull(updateTxHash, "Step 3 must complete first");
 
-        // Find ref UTxO at script address (most recent from step3)
-        var utxoResult = backend.getUtxoService().getUtxos(scriptAddr, 100, 1);
-        assertTrue(utxoResult.isSuccessful() && !utxoResult.getValue().isEmpty(),
-                "Should find ref UTxO at script address");
-        var allUtxos = utxoResult.getValue();
-        var refUtxo = allUtxos.get(allUtxos.size() - 1);
+        var refUtxo = YaciHelper.findUtxo(backend, scriptAddr, updateTxHash);
+        var userUtxo = findUtxoWithAsset(backend, minter.baseAddress(),
+                policyId + HexUtil.encodeHexString(userTokenName));
 
         var negOne = BigInteger.ONE.negate();
         var refAsset = new Asset("0x" + HexUtil.encodeHexString(refTokenName), negOne);
@@ -172,20 +181,36 @@ class Cip68NftIntegrationTest {
 
         var burnTx = new ScriptTx()
                 .collectFrom(refUtxo, burnRedeemer)
+                .collectFrom(userUtxo)
                 .mintAsset(script, List.of(refAsset, userAsset), burnRedeemer)
-                .payToAddress(minter.baseAddress(), Amount.ada(2))
                 .attachSpendingValidator(script);
 
         var result = quickTx.compose(burnTx)
                 .withSigner(SignerProviders.signerFrom(minter))
                 .feePayer(minter.baseAddress())
                 .collateralPayer(minter.baseAddress())
-                .ignoreScriptCostEvaluationError(true)
                 .complete();
 
         assertTrue(result.isSuccessful(), "Burn tx should succeed: " + result);
         YaciHelper.waitForConfirmation(backend, result.getValue());
         System.out.println("Step 4 OK: Burned both tokens, tx=" + result.getValue());
+    }
+
+    private static Utxo findUtxoWithAsset(BackendService backend, String address, String unit) throws Exception {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            var utxoResult = backend.getUtxoService().getUtxos(address, 100, 1);
+            if (utxoResult.isSuccessful() && utxoResult.getValue() != null) {
+                var match = utxoResult.getValue().stream()
+                        .filter(utxo -> utxo.getAmount() != null
+                                && utxo.getAmount().stream().anyMatch(amount ->
+                                unit.equals(amount.getUnit())
+                                        && amount.getQuantity().compareTo(BigInteger.ZERO) > 0))
+                        .findFirst();
+                if (match.isPresent()) return match.get();
+            }
+            Thread.sleep(2000);
+        }
+        throw new RuntimeException("UTXO not found at " + address + " for asset " + unit);
     }
 
     private static byte[] concat(byte[] a, byte[] b) {

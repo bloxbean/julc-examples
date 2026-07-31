@@ -2,13 +2,11 @@ package com.example.validators;
 
 import com.bloxbean.cardano.julc.stdlib.annotation.Param;
 import com.bloxbean.cardano.julc.stdlib.annotation.SpendingValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Validator;
 import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
 import com.bloxbean.cardano.julc.ledger.ScriptContext;
 import com.bloxbean.cardano.julc.ledger.TxInfo;
 import com.bloxbean.cardano.julc.ledger.PubKeyHash;
 import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
-//import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
 import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
 import com.example.util.SumTest;
 

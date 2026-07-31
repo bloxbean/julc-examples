@@ -204,6 +204,7 @@ list.take(n)                                // first n elements
 list.drop(n)                                // skip first n elements
 JulcList.empty()                            // empty list
 JulcList.of(a, b, c)                        // list from elements
+JulcList.of(a, b, c).toPlutusData()         // typed list -> ListData
 ```
 
 ### 3.6 JulcMap&lt;K, V&gt; — On-Chain Associative Map
@@ -218,6 +219,7 @@ map.insert(key, value)                      // new map with entry added
 map.delete(key)                             // new map without key
 map.keys()                                  // all keys as JulcList
 map.values()                                // all values as JulcList
+map.toPlutusData()                          // typed map -> MapData
 map.size()                                  // number of entries
 map.isEmpty()                               // check if empty
 JulcMap.empty()                             // empty map
@@ -266,6 +268,7 @@ import com.bloxbean.cardano.julc.stdlib.lib.ByteStringLib;
 
 // Basic operations
 ByteStringLib.append(a, b)                  // concatenate two byte arrays
+Builtins.concat(a, b, c, ...)               // concatenate 2+ arrays
 ByteStringLib.empty()                       // empty byte array
 ByteStringLib.cons(byteVal, bs)             // prepend a byte (0-255)
 ByteStringLib.length(bs)                    // byte length
@@ -303,6 +306,8 @@ ValuesLib.assetOf(value, policyId, tokenName)            // quantity of specific
 ValuesLib.containsPolicy(value, policyId)                // check if policy exists
 ValuesLib.countTokensWithQty(mint, policyId, qty)        // count tokens with exact qty
 ValuesLib.findTokenName(mint, policyId, qty)             // find token name with exact qty
+ValuesLib.refBytes(seedRef)                               // txId ++ 2-byte BE index
+ValuesLib.uniqueTokenName(seedRef)                        // blake2b_256(refBytes)
 ValuesLib.flatten(value)                                 // flatten to list of (policy, name, amount) triples
 
 // Construction
@@ -940,13 +945,17 @@ if (a.equals(BigInteger.ZERO))
 if (a.compareTo(BigInteger.ZERO) > 0)
 ```
 
-### 10.3 JVM vs UPLC Behavior Difference
+### 10.3 `integerToByteString` Bounds
 
-`Builtins.integerToByteString(true, 0, 0)`:
-- **JVM**: Returns `[0]` (1 byte) — BigInteger.ZERO.toByteArray() bug
-- **UPLC**: Returns `[]` (empty)
+The JVM and UPLC implementations now share the same contract:
 
-**Fix in tests**: Manually handle zero: `if (n.signum() == 0) return new byte[0];`
+- width must be between 0 and 8192 bytes;
+- a positive width fails if the integer does not fit;
+- width 0 uses the minimal representation and encodes zero as an empty byte string;
+- even with width 0, the result cannot exceed 8192 bytes.
+
+For deterministic `TxOutRef` seeds, prefer `ValuesLib.refBytes(ref)`, which uses
+a fixed two-byte big-endian output index and fails if the index exceeds 65535.
 
 ### 10.4 `contains()` on ByteString Lists
 

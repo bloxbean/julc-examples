@@ -174,7 +174,7 @@ if (!wasFound) return false;
 ### 3.5 JulcList&lt;T&gt; — On-Chain List
 
 ```java
-import com.bloxbean.cardano.julc.core.types.JulcList;
+import org.julclang.core.types.JulcList;
 
 // Iteration
 for (var item : list) { ... }
@@ -210,7 +210,7 @@ JulcList.of(a, b, c).toPlutusData()         // typed list -> ListData
 ### 3.6 JulcMap&lt;K, V&gt; — On-Chain Associative Map
 
 ```java
-import com.bloxbean.cardano.julc.core.types.JulcMap;
+import org.julclang.core.types.JulcMap;
 
 map.get(key)                                // lookup value (null if missing)
 map.getOrDefault(key, defaultValue)         // lookup with fallback
@@ -264,7 +264,7 @@ Prefer stdlib methods over raw `Builtins` for readability and safety.
 ### 5.1 ByteStringLib — Byte Array Operations
 
 ```java
-import com.bloxbean.cardano.julc.stdlib.lib.ByteStringLib;
+import org.julclang.stdlib.lib.ByteStringLib;
 
 // Basic operations
 ByteStringLib.append(a, b)                  // concatenate two byte arrays
@@ -298,7 +298,7 @@ ByteStringLib.serialiseData(d)              // Data -> CBOR bytes
 ### 5.2 ValuesLib — Value/Token Operations
 
 ```java
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
+import org.julclang.stdlib.lib.ValuesLib;
 
 // Extraction
 ValuesLib.lovelaceOf(value)                              // extract lovelace amount
@@ -331,7 +331,7 @@ ValuesLib.isZero(value)                                  // all amounts are zero
 ### 5.3 AddressLib — Address Inspection
 
 ```java
-import com.bloxbean.cardano.julc.stdlib.lib.AddressLib;
+import org.julclang.stdlib.lib.AddressLib;
 
 AddressLib.isScriptAddress(addr)            // true if ScriptCredential
 AddressLib.isPubKeyAddress(addr)            // true if PubKeyCredential
@@ -342,7 +342,7 @@ AddressLib.paymentCredential(addr)          // extract payment credential
 ### 5.4 OutputLib — Output/Input Helpers
 
 ```java
-import com.bloxbean.cardano.julc.stdlib.lib.OutputLib;
+import org.julclang.stdlib.lib.OutputLib;
 
 // Datum extraction
 OutputLib.getInlineDatum(output)                         // extract inline datum as PlutusData
@@ -372,7 +372,7 @@ OutputLib.txOutDatum(txOut)                              // output datum
 ### 5.5 ContextsLib — ScriptContext Helpers
 
 ```java
-import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
+import org.julclang.stdlib.lib.ContextsLib;
 
 // Signature check
 ContextsLib.signedBy(txInfo, pubKeyHash)                 // check if tx signed by key
@@ -406,7 +406,7 @@ ContextsLib.trace(message)                               // emit trace message
 ### 5.6 CryptoLib — Hashing & Signatures
 
 ```java
-import com.bloxbean.cardano.julc.stdlib.lib.CryptoLib;
+import org.julclang.stdlib.lib.CryptoLib;
 
 // Hashing
 CryptoLib.sha2_256(bs)                                   // SHA2-256
@@ -425,7 +425,7 @@ CryptoLib.verifySchnorrSecp256k1(vk, msg, sig)           // Schnorr secp256k1
 ### 5.7 IntervalLib — Time Range Operations
 
 ```java
-import com.bloxbean.cardano.julc.stdlib.lib.IntervalLib;
+import org.julclang.stdlib.lib.IntervalLib;
 
 // Bound extraction
 IntervalLib.finiteUpperBound(validRange)                 // extract upper bound time
@@ -455,7 +455,7 @@ return switch (upperBound.boundType()) {
 ### 5.8 ListsLib — List Operations
 
 ```java
-import com.bloxbean.cardano.julc.stdlib.lib.ListsLib;
+import org.julclang.stdlib.lib.ListsLib;
 
 ListsLib.empty()                            // empty list
 ListsLib.prepend(list, element)             // prepend element
@@ -478,7 +478,7 @@ ListsLib.hasDuplicateBytes(list)            // O(n^2) duplicate check for bytes
 ### 5.9 MapLib — Map Operations
 
 ```java
-import com.bloxbean.cardano.julc.stdlib.lib.MapLib;
+import org.julclang.stdlib.lib.MapLib;
 
 MapLib.lookup(map, key)                     // returns Optional-like Constr
 MapLib.member(map, key)                     // check if key exists
@@ -494,7 +494,7 @@ MapLib.size(map)                            // count entries
 ### 5.10 MathLib — Integer Math
 
 ```java
-import com.bloxbean.cardano.julc.stdlib.lib.MathLib;
+import org.julclang.stdlib.lib.MathLib;
 
 MathLib.abs(x)                              // absolute value
 MathLib.max(a, b)                           // maximum
@@ -508,7 +508,7 @@ MathLib.sign(x)                             // returns -1, 0, or 1
 ### 5.11 BitwiseLib — Bitwise Operations
 
 ```java
-import com.bloxbean.cardano.julc.stdlib.lib.BitwiseLib;
+import org.julclang.stdlib.lib.BitwiseLib;
 
 BitwiseLib.andByteString(padding, a, b)     // bitwise AND
 BitwiseLib.orByteString(padding, a, b)      // bitwise OR
@@ -724,7 +724,7 @@ For testing `@OnchainLibrary` methods (compiled and evaluated on UPLC VM):
 ```java
 class MyLibTest {
     private static final String WRAPPER = """
-            import com.bloxbean.cardano.julc.stdlib.lib.ByteStringLib;
+            import org.julclang.stdlib.lib.ByteStringLib;
             import java.math.BigInteger;
 
             @OnchainLibrary
@@ -762,7 +762,7 @@ class MyValidatorTest extends ContractTest {
         initCrypto();  // Required for CryptoLib functions
     }
 
-    com.bloxbean.cardano.julc.core.Program compileAndApplyParams() {
+    org.julclang.core.Program compileAndApplyParams() {
         var result = compileValidator(MyValidator.class);
         assertFalse(result.hasErrors(), "Should compile: " + result);
         return result.program().applyParams(
@@ -1080,40 +1080,40 @@ dependencies {
 
 ```java
 // Core
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.core.types.JulcMap;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.core.types.JulcMap;
 
 // Ledger types
-import com.bloxbean.cardano.julc.ledger.*;
+import org.julclang.ledger.*;
 
 // Annotations
-import com.bloxbean.cardano.julc.stdlib.annotation.Validator;
-import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.Param;
-import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
-import com.bloxbean.cardano.julc.stdlib.annotation.OnchainLibrary;
-import com.bloxbean.cardano.julc.stdlib.annotation.NewType;
+import org.julclang.stdlib.annotation.Validator;
+import org.julclang.stdlib.annotation.MultiValidator;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.Param;
+import org.julclang.stdlib.annotation.Purpose;
+import org.julclang.stdlib.annotation.OnchainLibrary;
+import org.julclang.stdlib.annotation.NewType;
 
 // Builtins (use sparingly)
-import com.bloxbean.cardano.julc.stdlib.Builtins;
+import org.julclang.stdlib.Builtins;
 
 // Standard library (prefer over Builtins)
-import com.bloxbean.cardano.julc.stdlib.lib.ByteStringLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
-import com.bloxbean.cardano.julc.stdlib.lib.AddressLib;
-import com.bloxbean.cardano.julc.stdlib.lib.OutputLib;
-import com.bloxbean.cardano.julc.stdlib.lib.CryptoLib;
-import com.bloxbean.cardano.julc.stdlib.lib.IntervalLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ListsLib;
-import com.bloxbean.cardano.julc.stdlib.lib.MapLib;
-import com.bloxbean.cardano.julc.stdlib.lib.MathLib;
-import com.bloxbean.cardano.julc.stdlib.lib.BitwiseLib;
+import org.julclang.stdlib.lib.ByteStringLib;
+import org.julclang.stdlib.lib.ValuesLib;
+import org.julclang.stdlib.lib.AddressLib;
+import org.julclang.stdlib.lib.OutputLib;
+import org.julclang.stdlib.lib.CryptoLib;
+import org.julclang.stdlib.lib.IntervalLib;
+import org.julclang.stdlib.lib.ContextsLib;
+import org.julclang.stdlib.lib.ListsLib;
+import org.julclang.stdlib.lib.MapLib;
+import org.julclang.stdlib.lib.MathLib;
+import org.julclang.stdlib.lib.BitwiseLib;
 
 // Testing
-import com.bloxbean.cardano.julc.testkit.ContractTest;
-import com.bloxbean.cardano.julc.testkit.JulcEval;
-import com.bloxbean.cardano.julc.testkit.TestDataBuilder;
+import org.julclang.testkit.ContractTest;
+import org.julclang.testkit.JulcEval;
+import org.julclang.testkit.TestDataBuilder;
 ```

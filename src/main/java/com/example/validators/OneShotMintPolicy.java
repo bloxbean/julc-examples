@@ -1,17 +1,17 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.MintingValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Param;
-import com.bloxbean.cardano.julc.ledger.ScriptContext;
-import com.bloxbean.cardano.julc.ledger.ScriptInfo;
-import com.bloxbean.cardano.julc.ledger.TxInfo;
-import com.bloxbean.cardano.julc.ledger.TxOutRef;
-import com.bloxbean.cardano.julc.ledger.Value;
-import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.core.PlutusData;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.MintingValidator;
+import org.julclang.stdlib.annotation.Param;
+import org.julclang.ledger.ScriptContext;
+import org.julclang.ledger.ScriptInfo;
+import org.julclang.ledger.TxInfo;
+import org.julclang.ledger.TxOutRef;
+import org.julclang.ledger.Value;
+import org.julclang.stdlib.lib.ContextsLib;
+import org.julclang.stdlib.lib.ValuesLib;
+import org.julclang.stdlib.Builtins;
+import org.julclang.core.PlutusData;
 
 import java.math.BigInteger;
 

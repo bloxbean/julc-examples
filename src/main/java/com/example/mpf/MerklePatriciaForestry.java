@@ -1,9 +1,9 @@
 package com.example.mpf;
 
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.stdlib.annotation.OnchainLibrary;
-import com.bloxbean.cardano.julc.stdlib.lib.ByteStringLib;
-import com.bloxbean.cardano.julc.stdlib.lib.CryptoLib;
+import org.julclang.core.types.JulcList;
+import org.julclang.stdlib.annotation.OnchainLibrary;
+import org.julclang.stdlib.lib.ByteStringLib;
+import org.julclang.stdlib.lib.CryptoLib;
 import com.example.mpf.ProofStep;
 import com.example.mpf.Neighbor;
 

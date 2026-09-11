@@ -7,7 +7,7 @@ import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
-import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import org.julclang.clientlib.JulcScriptLoader;
 import com.example.validators.GuardedMinting;
 
 import java.math.BigInteger;

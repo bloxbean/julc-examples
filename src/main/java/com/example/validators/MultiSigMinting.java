@@ -1,11 +1,11 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.MintingValidator;
-import com.bloxbean.cardano.julc.ledger.ScriptContext;
-import com.bloxbean.cardano.julc.ledger.TxInfo;
-import com.bloxbean.cardano.julc.ledger.PubKeyHash;
-import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.MintingValidator;
+import org.julclang.ledger.ScriptContext;
+import org.julclang.ledger.TxInfo;
+import org.julclang.ledger.PubKeyHash;
+import org.julclang.stdlib.lib.ContextsLib;
 
 /**
  * Multi-sig minting policy demonstrating a 3-variant sealed interface redeemer.

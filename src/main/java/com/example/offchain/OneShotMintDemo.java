@@ -12,10 +12,10 @@ import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
-import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
-import com.bloxbean.cardano.julc.ledger.TxId;
-import com.bloxbean.cardano.julc.ledger.TxOutRef;
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
+import org.julclang.clientlib.JulcScriptLoader;
+import org.julclang.ledger.TxId;
+import org.julclang.ledger.TxOutRef;
+import org.julclang.stdlib.lib.ValuesLib;
 import com.example.validators.OneShotMintPolicy;
 
 import java.math.BigInteger;

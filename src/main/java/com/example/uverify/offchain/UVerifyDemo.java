@@ -14,7 +14,7 @@ import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
-import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
+import org.julclang.clientlib.JulcScriptLoader;
 import com.example.offchain.YaciHelper;
 import com.example.uverify.onchain.UVerifyProxy;
 import com.example.uverify.onchain.UVerifyV1;

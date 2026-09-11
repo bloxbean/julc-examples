@@ -1,12 +1,12 @@
 package com.example.cftemplates.simpletransfer.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.ledger.ScriptContext;
-import com.bloxbean.cardano.julc.ledger.TxInfo;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.Param;
-import com.bloxbean.cardano.julc.stdlib.annotation.SpendingValidator;
-import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
+import org.julclang.core.PlutusData;
+import org.julclang.ledger.ScriptContext;
+import org.julclang.ledger.TxInfo;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.Param;
+import org.julclang.stdlib.annotation.SpendingValidator;
+import org.julclang.stdlib.lib.ContextsLib;
 
 import java.util.Optional;
 

@@ -1,11 +1,11 @@
 package com.example.lending;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.core.types.JulcMap;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.testkit.*;
-import com.bloxbean.cardano.julc.testkit.JulcEval;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.core.types.JulcMap;
+import org.julclang.ledger.*;
+import org.julclang.testkit.*;
+import org.julclang.testkit.JulcEval;
 import com.example.lending.onchain.CollateralLoan;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -284,7 +284,7 @@ class CollateralLoanTest extends ContractTest {
         private PlutusData repayRedeemer() { return PlutusData.constr(2); }
         private PlutusData liquidateRedeemer() { return PlutusData.constr(3); }
 
-        private com.bloxbean.cardano.julc.compiler.CompileResult compileWithParams() {
+        private org.julclang.compiler.CompileResult compileWithParams() {
             var result = compileValidator(CollateralLoan.class);
             assertFalse(result.hasErrors(), "Should compile: " + result);
             return result;
@@ -536,7 +536,7 @@ class CollateralLoanTest extends ContractTest {
         }
     }
 
-    private static void logBudget(String testName, com.bloxbean.cardano.julc.vm.EvalResult result) {
+    private static void logBudget(String testName, org.julclang.vm.EvalResult result) {
         var budget = result.budgetConsumed();
         System.out.println("[" + testName + "] CPU: " + budget.cpuSteps() + ", Mem: " + budget.memoryUnits());
         System.out.println("[" + testName + "] Traces: " + result.traces());

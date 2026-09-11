@@ -1,15 +1,15 @@
 plugins {
     id 'java'
     id 'application'
-    id 'com.bloxbean.cardano.julc' version '0.1.0-pre15'
+    id 'org.julclang.julc' version '0.1.0-pre17-8fb33f4-SNAPSHOT'
 }
 
 group = 'com.example'
 version = '0.1.0'
 
 ext {
-    julcVersion = '0.1.0-pre15'
-    cardanoClientLibVersion = '0.8.0-pre4'
+    julcVersion = '0.1.0-pre17-8fb33f4-SNAPSHOT'
+    cardanoClientLibVersion = '0.8.0-pre5'
 }
 
 repositories {
@@ -46,16 +46,16 @@ sourceSets.test.java {
 dependencies {
     // Stdlib — annotations (@Validator, @MintingPolicy, @Entrypoint),
     // stdlib libs (ContextsLib, ListsLib, etc.)
-    implementation "com.bloxbean.cardano:julc-stdlib:${julcVersion}"
+    implementation "org.julclang:julc-stdlib:${julcVersion}"
 
-    implementation "com.bloxbean.cardano:julc-cardano-client-lib:${julcVersion}"
+    implementation "org.julclang:julc-cardano-client-lib:${julcVersion}"
     // Annotation processor — compiles @Validator/@MintingPolicy classes to UPLC during javac
-    annotationProcessor "com.bloxbean.cardano:julc-annotation-processor:${julcVersion}"
+    annotationProcessor "org.julclang:julc-annotation-processor:${julcVersion}"
 
     // Runtime — JulcScriptLoader for loading compiled scripts at runtime
-    implementation "com.bloxbean.cardano:julc-annotation-processor:${julcVersion}"
+    implementation "org.julclang:julc-annotation-processor:${julcVersion}"
 
-    runtimeOnly "com.bloxbean.cardano:julc-vm-java:${julcVersion}"
+    runtimeOnly "org.julclang:julc-vm-java:${julcVersion}"
 
     // cardano-client-lib — off-chain transaction building
     implementation "com.bloxbean.cardano:cardano-client-lib:${cardanoClientLibVersion}"
@@ -64,13 +64,13 @@ dependencies {
 
     // Test dependencies
     testImplementation 'org.bouncycastle:bcprov-jdk18on:1.83'
-    testImplementation "com.bloxbean.cardano:julc-testkit:${julcVersion}"
-    testImplementation "com.bloxbean.cardano:julc-testkit-jqwik:${julcVersion}"
-    testImplementation "com.bloxbean.cardano:julc-compiler:${julcVersion}"
-    testImplementation "com.bloxbean.cardano:julc-stdlib:${julcVersion}"
-    testRuntimeOnly "com.bloxbean.cardano:julc-vm-java:${julcVersion}"
-//    testImplementation "com.bloxbean.cardano:julc-vm-truffle:${julcVersion}"  // For JulcDebugger API
-//    testImplementation "com.bloxbean.cardano:julc-vm-scalus:${julcVersion}"   // Scalus VM backend — cross-VM budget comparison
+    testImplementation "org.julclang:julc-testkit:${julcVersion}"
+    testImplementation "org.julclang:julc-testkit-jqwik:${julcVersion}"
+    testImplementation "org.julclang:julc-compiler:${julcVersion}"
+    testImplementation "org.julclang:julc-stdlib:${julcVersion}"
+    testRuntimeOnly "org.julclang:julc-vm-java:${julcVersion}"
+//    testImplementation "org.julclang:julc-vm-truffle:${julcVersion}"  // For JulcDebugger API
+//    testImplementation "org.julclang:julc-vm-scalus:${julcVersion}"   // Scalus VM backend — cross-VM budget comparison
     testImplementation 'net.jqwik:jqwik:1.9.2'
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'

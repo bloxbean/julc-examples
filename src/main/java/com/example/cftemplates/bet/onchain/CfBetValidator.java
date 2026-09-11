@@ -1,17 +1,17 @@
 package com.example.cftemplates.bet.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
-import com.bloxbean.cardano.julc.stdlib.lib.AddressLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
-import com.bloxbean.cardano.julc.stdlib.lib.IntervalLib;
-import com.bloxbean.cardano.julc.stdlib.lib.OutputLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.MultiValidator;
+import org.julclang.stdlib.annotation.Purpose;
+import org.julclang.stdlib.lib.AddressLib;
+import org.julclang.stdlib.lib.ContextsLib;
+import org.julclang.stdlib.lib.IntervalLib;
+import org.julclang.stdlib.lib.OutputLib;
+import org.julclang.stdlib.lib.ValuesLib;
 
 import java.math.BigInteger;
 import java.util.Optional;

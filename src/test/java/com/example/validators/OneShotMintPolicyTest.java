@@ -1,11 +1,11 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.core.types.JulcMap;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
-import com.bloxbean.cardano.julc.testkit.*;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.core.types.JulcMap;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.lib.ValuesLib;
+import org.julclang.testkit.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -120,14 +120,14 @@ class OneShotMintPolicyTest extends ContractTest {
 
         private PlutusData buildCtxWithInput(
                 PlutusData redeemer, byte[] txId, int index, Value mint) {
-            var ref = new com.bloxbean.cardano.julc.ledger.TxOutRef(
+            var ref = new org.julclang.ledger.TxOutRef(
                     new TxId(txId), BigInteger.valueOf(index));
             var address = TestDataBuilder.pubKeyAddress(TestDataBuilder.randomPubKeyHash_typed());
             var txOut = TestDataBuilder.txOut(address,
-                    com.bloxbean.cardano.julc.ledger.Value.lovelace(BigInteger.valueOf(5_000_000)));
+                    org.julclang.ledger.Value.lovelace(BigInteger.valueOf(5_000_000)));
             var txIn = TestDataBuilder.txIn(ref, txOut);
 
-            var policyId = new com.bloxbean.cardano.julc.ledger.PolicyId(POLICY_ID);
+            var policyId = new org.julclang.ledger.PolicyId(POLICY_ID);
             return mintingContext(policyId)
                     .redeemer(redeemer)
                     .input(txIn)
@@ -227,7 +227,7 @@ class OneShotMintPolicyTest extends ContractTest {
         }
     }
 
-    private static void logBudget(String testName, com.bloxbean.cardano.julc.vm.EvalResult result) {
+    private static void logBudget(String testName, org.julclang.vm.EvalResult result) {
         var budget = result.budgetConsumed();
         System.out.println("[" + testName + "] CPU: " + budget.cpuSteps() + ", Mem: " + budget.memoryUnits());
         System.out.println("[" + testName + "] Traces: " + result.traces());

@@ -1,7 +1,7 @@
 package com.example.util;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.testkit.JulcEval;
+import org.julclang.core.PlutusData;
+import org.julclang.testkit.JulcEval;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

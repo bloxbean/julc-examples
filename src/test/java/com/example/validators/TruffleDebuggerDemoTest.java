@@ -1,16 +1,16 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.compiler.CompileResult;
-import com.bloxbean.cardano.julc.core.Constant;
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.Term;
-import com.bloxbean.cardano.julc.ledger.PubKeyHash;
-import com.bloxbean.cardano.julc.ledger.TxOutRef;
-import com.bloxbean.cardano.julc.ledger.Value;
-import com.bloxbean.cardano.julc.testkit.ContractTest;
-import com.bloxbean.cardano.julc.testkit.TestDataBuilder;
-import com.bloxbean.cardano.julc.vm.EvalResult;
-//import com.bloxbean.cardano.julc.vm.truffle.debug.JulcDebugger;
+import org.julclang.compiler.CompileResult;
+import org.julclang.core.Constant;
+import org.julclang.core.PlutusData;
+import org.julclang.core.Term;
+import org.julclang.ledger.PubKeyHash;
+import org.julclang.ledger.TxOutRef;
+import org.julclang.ledger.Value;
+import org.julclang.testkit.ContractTest;
+import org.julclang.testkit.TestDataBuilder;
+import org.julclang.vm.EvalResult;
+//import org.julclang.vm.truffle.debug.JulcDebugger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -298,7 +298,7 @@ class TruffleDebuggerDemoTest extends ContractTest {
 //        return spendingContext(ref, escrowDatum())
 //                .redeemer(PlutusData.constr(0, PlutusData.integer(1)))
 //                .signer(new byte[28])
-//                .validRange(com.bloxbean.cardano.julc.ledger.Interval.before(BigInteger.valueOf(500)))
+//                .validRange(org.julclang.ledger.Interval.before(BigInteger.valueOf(500)))
 //                .buildPlutusData();
 //    }
 }

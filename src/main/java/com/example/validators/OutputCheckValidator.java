@@ -1,11 +1,11 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.SpendingValidator;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.stdlib.lib.OutputLib;
+import org.julclang.core.PlutusData;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.SpendingValidator;
+import org.julclang.ledger.*;
+import org.julclang.core.types.JulcList;
+import org.julclang.stdlib.lib.OutputLib;
 
 import java.math.BigInteger;
 

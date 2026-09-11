@@ -1,9 +1,9 @@
 package com.example.mpf;
 
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.stdlib.lib.CryptoLib;
-import com.bloxbean.cardano.julc.testkit.JvmCryptoProvider;
+import org.julclang.core.types.JulcList;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.lib.CryptoLib;
+import org.julclang.testkit.JvmCryptoProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

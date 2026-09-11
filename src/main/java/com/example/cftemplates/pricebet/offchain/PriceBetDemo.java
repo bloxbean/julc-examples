@@ -8,8 +8,8 @@ import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
-import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
-import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
+import org.julclang.clientlib.JulcScriptLoader;
+import org.julclang.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.pricebet.onchain.CfPriceBetValidator;
 import com.example.offchain.YaciHelper;
 

@@ -1,7 +1,7 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.testkit.*;
+import org.julclang.core.PlutusData;
+import org.julclang.testkit.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +27,7 @@ class GuardedMintingTest extends ContractTest {
     }
 
     private PlutusData buildMintingCtx(PlutusData redeemer, byte[]... signers) {
-        var policyId = new com.bloxbean.cardano.julc.ledger.PolicyId(new byte[28]);
+        var policyId = new org.julclang.ledger.PolicyId(new byte[28]);
         var builder = mintingContext(policyId).redeemer(redeemer);
         for (byte[] s : signers) {
             builder.signer(s);
@@ -61,7 +61,7 @@ class GuardedMintingTest extends ContractTest {
         logBudget("unauthorizedSigner_fails", result);
     }
 
-    private static void logBudget(String testName, com.bloxbean.cardano.julc.vm.EvalResult result) {
+    private static void logBudget(String testName, org.julclang.vm.EvalResult result) {
         var budget = result.budgetConsumed();
         System.out.println("[" + testName + "] CPU: " + budget.cpuSteps() + ", Mem: " + budget.memoryUnits());
         System.out.println("[" + testName + "] Traces: " + result.traces());

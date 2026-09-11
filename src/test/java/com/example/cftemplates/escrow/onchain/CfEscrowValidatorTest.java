@@ -1,9 +1,9 @@
 package com.example.cftemplates.escrow.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.testkit.ContractTest;
-import com.bloxbean.cardano.julc.testkit.TestDataBuilder;
+import org.julclang.core.PlutusData;
+import org.julclang.ledger.*;
+import org.julclang.testkit.ContractTest;
+import org.julclang.testkit.TestDataBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -280,7 +280,7 @@ class CfEscrowValidatorTest extends ContractTest {
         }
     }
 
-    private static void logBudget(String testName, com.bloxbean.cardano.julc.vm.EvalResult result) {
+    private static void logBudget(String testName, org.julclang.vm.EvalResult result) {
         var budget = result.budgetConsumed();
         System.out.println("[" + testName + "] CPU: " + budget.cpuSteps() + ", Mem: " + budget.memoryUnits());
     }

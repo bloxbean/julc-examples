@@ -1,12 +1,12 @@
 package com.example.linkedlist.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.stdlib.annotation.OnchainLibrary;
-import com.bloxbean.cardano.julc.stdlib.lib.ByteStringLib;
-import com.bloxbean.cardano.julc.stdlib.lib.OutputLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
+import org.julclang.core.PlutusData;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.annotation.OnchainLibrary;
+import org.julclang.stdlib.lib.ByteStringLib;
+import org.julclang.stdlib.lib.OutputLib;
+import org.julclang.stdlib.lib.ValuesLib;
 
 import java.math.BigInteger;
 

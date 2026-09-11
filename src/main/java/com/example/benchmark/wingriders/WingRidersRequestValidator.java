@@ -1,10 +1,10 @@
 package com.example.benchmark.wingriders;
 
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.Param;
-import com.bloxbean.cardano.julc.stdlib.annotation.SpendingValidator;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.lib.ByteStringLib;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.Param;
+import org.julclang.stdlib.annotation.SpendingValidator;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.lib.ByteStringLib;
 
 import java.math.BigInteger;
 

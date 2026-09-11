@@ -1,17 +1,18 @@
 package com.example.uverify.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Param;
-import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
-import com.bloxbean.cardano.julc.stdlib.lib.AddressLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ByteStringLib;
-import com.bloxbean.cardano.julc.stdlib.lib.CryptoLib;
-import com.bloxbean.cardano.julc.stdlib.lib.IntervalLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.MultiValidator;
+import org.julclang.stdlib.annotation.Param;
+import org.julclang.stdlib.annotation.Purpose;
+import org.julclang.stdlib.lib.AddressLib;
+import org.julclang.stdlib.lib.ByteStringLib;
+import org.julclang.stdlib.lib.CryptoLib;
+import org.julclang.stdlib.lib.IntervalLib;
+import org.julclang.stdlib.lib.ValuesLib;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -111,13 +112,8 @@ public class UVerifyFeePot {
     static byte[] buildExpectedMessage(byte[] signerPkhHex, byte[] submitterKeyHashHex, BigInteger ttl) {
         byte[] colon = ByteStringLib.cons(58, ByteStringLib.empty()); // ':'
         byte[] ttlStr = ByteStringLib.intToDecimalString(ttl);
-        return ByteStringLib.append(
-                ByteStringLib.append(
-                        ByteStringLib.append(
-                                ByteStringLib.append(signerPkhHex, colon),
-                                submitterKeyHashHex),
-                        colon),
-                ttlStr);
+        return Builtins.concat(
+                signerPkhHex, colon, submitterKeyHashHex, colon, ttlStr);
     }
 
     static BigInteger sumLovelaceAtWhitelistedScripts(JulcList<TxOut> outputs) {

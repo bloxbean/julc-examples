@@ -7,8 +7,8 @@ import com.bloxbean.cardano.client.backend.api.DefaultScriptSupplier;
 import com.bloxbean.cardano.client.backend.api.DefaultUtxoSupplier;
 import com.bloxbean.cardano.client.backend.blockfrost.service.BFBackendService;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
-import com.bloxbean.cardano.julc.clientlib.eval.JulcTransactionEvaluator;
-import com.bloxbean.cardano.julc.clientlib.eval.SlotConfig;
+import org.julclang.clientlib.eval.JulcTransactionEvaluator;
+import org.julclang.clientlib.eval.SlotConfig;
 
 import java.net.URI;
 import java.net.http.HttpClient;

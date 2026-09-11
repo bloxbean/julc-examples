@@ -1,9 +1,9 @@
 package com.example.cftemplates.vesting.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.testkit.ContractTest;
-import com.bloxbean.cardano.julc.testkit.TestDataBuilder;
+import org.julclang.core.PlutusData;
+import org.julclang.ledger.*;
+import org.julclang.testkit.ContractTest;
+import org.julclang.testkit.TestDataBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,25 +35,25 @@ class CfVestingValidatorTest extends ContractTest {
     class DirectJavaTests {
 
         private ScriptContext buildCtx(byte[][] signers, BigInteger validFrom) {
-            var sigList = com.bloxbean.cardano.julc.core.types.JulcList.<PubKeyHash>empty();
+            var sigList = org.julclang.core.types.JulcList.<PubKeyHash>empty();
             for (byte[] sig : signers) {
                 sigList = sigList.prepend(new PubKeyHash(sig));
             }
             var range = Interval.after(validFrom);
             var txInfo = new TxInfo(
-                    com.bloxbean.cardano.julc.core.types.JulcList.of(),
-                    com.bloxbean.cardano.julc.core.types.JulcList.of(),
-                    com.bloxbean.cardano.julc.core.types.JulcList.of(),
+                    org.julclang.core.types.JulcList.of(),
+                    org.julclang.core.types.JulcList.of(),
+                    org.julclang.core.types.JulcList.of(),
                     BigInteger.valueOf(200_000),
                     Value.zero(),
-                    com.bloxbean.cardano.julc.core.types.JulcList.of(),
-                    com.bloxbean.cardano.julc.core.types.JulcMap.empty(),
+                    org.julclang.core.types.JulcList.of(),
+                    org.julclang.core.types.JulcMap.empty(),
                     range, sigList,
-                    com.bloxbean.cardano.julc.core.types.JulcMap.empty(),
-                    com.bloxbean.cardano.julc.core.types.JulcMap.empty(),
+                    org.julclang.core.types.JulcMap.empty(),
+                    org.julclang.core.types.JulcMap.empty(),
                     new TxId(new byte[32]),
-                    com.bloxbean.cardano.julc.core.types.JulcMap.empty(),
-                    com.bloxbean.cardano.julc.core.types.JulcList.of(),
+                    org.julclang.core.types.JulcMap.empty(),
+                    org.julclang.core.types.JulcList.of(),
                     java.util.Optional.empty(), java.util.Optional.empty());
             return new ScriptContext(txInfo, PlutusData.UNIT,
                     new ScriptInfo.SpendingScript(
@@ -175,7 +175,7 @@ class CfVestingValidatorTest extends ContractTest {
         }
     }
 
-    private static void logBudget(String testName, com.bloxbean.cardano.julc.vm.EvalResult result) {
+    private static void logBudget(String testName, org.julclang.vm.EvalResult result) {
         var budget = result.budgetConsumed();
         System.out.println("[" + testName + "] CPU: " + budget.cpuSteps() + ", Mem: " + budget.memoryUnits());
     }

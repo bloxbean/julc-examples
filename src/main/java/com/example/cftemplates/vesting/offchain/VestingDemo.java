@@ -9,8 +9,8 @@ import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
-import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
-import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
+import org.julclang.clientlib.JulcScriptLoader;
+import org.julclang.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.vesting.onchain.CfVestingValidator;
 import com.example.offchain.YaciHelper;
 

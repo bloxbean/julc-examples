@@ -10,9 +10,9 @@ import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
-import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
-import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
-import com.bloxbean.cardano.julc.core.types.JulcMap;
+import org.julclang.clientlib.JulcScriptLoader;
+import org.julclang.clientlib.PlutusDataAdapter;
+import org.julclang.core.types.JulcMap;
 import com.example.cftemplates.crowdfund.onchain.CfCrowdfundValidator;
 import com.example.offchain.YaciHelper;
 

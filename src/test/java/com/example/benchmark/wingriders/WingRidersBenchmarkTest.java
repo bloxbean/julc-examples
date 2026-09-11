@@ -1,10 +1,10 @@
 package com.example.benchmark.wingriders;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.core.types.JulcMap;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.testkit.*;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.core.types.JulcMap;
+import org.julclang.ledger.*;
+import org.julclang.testkit.*;
 import com.example.benchmark.wingriders.WingRidersRequestValidator.*;
 import com.example.benchmark.wingriders.WingRidersPoolValidator.PoolDatum;
 import com.example.benchmark.wingriders.WingRidersPoolValidator.Evolve;
@@ -200,7 +200,7 @@ class WingRidersBenchmarkTest extends ContractTest {
                         new Credential.ScriptCredential(new ScriptHash(POOL_SCRIPT_HASH)),
                         Optional.empty());
                 var poolTxOut = new TxOut(poolAddr,
-                        com.bloxbean.cardano.julc.ledger.Value.lovelace(BigInteger.valueOf(100_000_000)),
+                        org.julclang.ledger.Value.lovelace(BigInteger.valueOf(100_000_000)),
                         new OutputDatum.NoOutputDatum(), Optional.empty());
                 var poolIn = TestDataBuilder.txIn(poolRef, poolTxOut);
 
@@ -473,7 +473,7 @@ class WingRidersBenchmarkTest extends ContractTest {
         return String.valueOf(n);
     }
 
-    static void logBudget(String testName, com.bloxbean.cardano.julc.vm.EvalResult result) {
+    static void logBudget(String testName, org.julclang.vm.EvalResult result) {
         var budget = result.budgetConsumed();
         System.out.println("[" + testName + "] CPU: " + budget.cpuSteps() + ", Mem: " + budget.memoryUnits());
         System.out.println("[" + testName + "] Traces: " + result.traces());

@@ -1,13 +1,13 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.core.types.JulcMap;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.lib.CryptoLib;
-import com.bloxbean.cardano.julc.testkit.*;
-import com.bloxbean.cardano.julc.vm.EvalResult;
+import org.julclang.clientlib.PlutusDataAdapter;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.core.types.JulcMap;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.lib.CryptoLib;
+import org.julclang.testkit.*;
+import org.julclang.vm.EvalResult;
 import com.bloxbean.cardano.vds.mpf.MpfTrie;
 import com.bloxbean.cardano.vds.mpf.internal.TestNodeStore;
 import com.example.mpf.MerklePatriciaForestry;

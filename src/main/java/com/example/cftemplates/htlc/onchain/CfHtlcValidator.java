@@ -1,18 +1,18 @@
 package com.example.cftemplates.htlc.onchain;
 
-import com.bloxbean.cardano.julc.ledger.ScriptContext;
-import com.bloxbean.cardano.julc.ledger.TxInfo;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.Param;
-import com.bloxbean.cardano.julc.stdlib.annotation.SpendingValidator;
-import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
-import com.bloxbean.cardano.julc.stdlib.lib.CryptoLib;
-import com.bloxbean.cardano.julc.stdlib.lib.IntervalLib;
+import org.julclang.ledger.ScriptContext;
+import org.julclang.ledger.TxInfo;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.Param;
+import org.julclang.stdlib.annotation.SpendingValidator;
+import org.julclang.stdlib.lib.ContextsLib;
+import org.julclang.stdlib.lib.CryptoLib;
+import org.julclang.stdlib.lib.IntervalLib;
 
 import java.math.BigInteger;
 import java.util.Optional;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
+import org.julclang.core.PlutusData;
 
 /**
  * Hash Time-Locked Contract (HTLC) — funds can be claimed by revealing

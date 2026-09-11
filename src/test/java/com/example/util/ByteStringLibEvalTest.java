@@ -1,6 +1,6 @@
 package com.example.util;
 
-import com.bloxbean.cardano.julc.testkit.JulcEval;
+import org.julclang.testkit.JulcEval;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ByteStringLibEvalTest {
 
     private static final String WRAPPER = """
-            import com.bloxbean.cardano.julc.stdlib.lib.ByteStringLib;
+            import org.julclang.stdlib.lib.ByteStringLib;
             import java.math.BigInteger;
 
             @OnchainLibrary

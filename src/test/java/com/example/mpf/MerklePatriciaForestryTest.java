@@ -1,13 +1,19 @@
 package com.example.mpf;
 
+import com.bloxbean.cardano.vds.mpf.MpfTrie;
+import com.bloxbean.cardano.vds.mpf.internal.TestNodeStore;
+import org.julclang.clientlib.PlutusDataAdapter;
+import org.julclang.core.PlutusData;
 import org.julclang.core.types.JulcList;
 import org.julclang.stdlib.Builtins;
 import org.julclang.stdlib.lib.CryptoLib;
+import org.julclang.testkit.JulcEval;
 import org.julclang.testkit.JvmCryptoProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
@@ -387,6 +393,502 @@ class MerklePatriciaForestryTest {
             byte[] emptyRoot = MerklePatriciaForestry.nullHash();
             byte[] key = hex("aabbccdd");
             assertTrue(MerklePatriciaForestry.miss(emptyRoot, key, JulcList.of()));
+        }
+    }
+
+    // =========================================================================
+    // Proof shape validation — forged, malformed and honest proofs
+    // =========================================================================
+    //
+    // Tries are built with MpfTrie (cardano-client-lib) and node hashes with the library's
+    // own functions. Every forged or malformed proof is checked twice: through the Java
+    // executable stubs and through UPLC compiled from the library source (JulcEval), where
+    // "returns false" and "fails" are distinguishable.
+
+    static final byte[] VALUE = "v".getBytes();
+    static final JulcEval UPLC = JulcEval.forClass(MerklePatriciaForestry.class);
+
+    static byte[] h(String key) {
+        return CryptoLib.blake2b_256(key.getBytes());
+    }
+
+    static byte[] hv() {
+        return CryptoLib.blake2b_256(VALUE);
+    }
+
+    /** Hash of key's leaf (holding VALUE) when the leaf sits at {@code cursor}. */
+    static byte[] leaf(String key, int cursor) {
+        return MerklePatriciaForestry.combine(MerklePatriciaForestry.suffix(h(key), cursor), hv());
+    }
+
+    static MpfTrie trie(String... keys) {
+        var t = new MpfTrie(new TestNodeStore());
+        for (String k : keys) {
+            t.put(k.getBytes(), VALUE);
+        }
+        return t;
+    }
+
+    static JulcList<ProofStep> proofOf(MpfTrie t, String key) {
+        return toSteps(PlutusDataAdapter.fromClientLib(t.getProofPlutusData(key.getBytes()).orElseThrow()));
+    }
+
+    static JulcList<ProofStep> toSteps(PlutusData proofData) {
+        var steps = new ArrayList<ProofStep>();
+        for (var item : ((PlutusData.ListData) proofData).items()) {
+            var c = (PlutusData.ConstrData) item;
+            var f = c.fields();
+            int skip = ((PlutusData.IntData) f.get(0)).value().intValueExact();
+            switch (c.tag()) {
+                case 0 -> steps.add(new ProofStep.Branch(skip, ((PlutusData.BytesData) f.get(1)).value()));
+                case 1 -> {
+                    var nf = ((PlutusData.ConstrData) f.get(1)).fields();
+                    steps.add(new ProofStep.Fork(skip, new Neighbor(
+                            ((PlutusData.IntData) nf.get(0)).value().intValueExact(),
+                            ((PlutusData.BytesData) nf.get(1)).value(),
+                            ((PlutusData.BytesData) nf.get(2)).value())));
+                }
+                case 2 -> steps.add(new ProofStep.Leaf(skip,
+                        ((PlutusData.BytesData) f.get(1)).value(),
+                        ((PlutusData.BytesData) f.get(2)).value()));
+                default -> throw new IllegalArgumentException("Unknown proof step tag " + c.tag());
+            }
+        }
+        return JulcList.of(steps.toArray(new ProofStep[0]));
+    }
+
+    static PlutusData toData(JulcList<ProofStep> proof) {
+        var items = new ArrayList<PlutusData>();
+        for (ProofStep step : proof) {
+            if (step instanceof ProofStep.Branch b) {
+                items.add(PlutusData.constr(0, PlutusData.integer(b.skip()), PlutusData.bytes(b.neighbors())));
+            } else if (step instanceof ProofStep.Fork f) {
+                Neighbor n = f.neighbor();
+                items.add(PlutusData.constr(1, PlutusData.integer(f.skip()), PlutusData.constr(0,
+                        PlutusData.integer(n.nibble()), PlutusData.bytes(n.prefix()), PlutusData.bytes(n.root()))));
+            } else {
+                ProofStep.Leaf l = (ProofStep.Leaf) step;
+                items.add(PlutusData.constr(2, PlutusData.integer(l.skip()),
+                        PlutusData.bytes(l.key()), PlutusData.bytes(l.value())));
+            }
+        }
+        return PlutusData.list(items.toArray(new PlutusData[0]));
+    }
+
+    /** miss() through the Java stubs and through compiled UPLC; both must agree. */
+    static boolean missBoth(byte[] root, String key, JulcList<ProofStep> proof) {
+        boolean java = MerklePatriciaForestry.miss(root, key.getBytes(), proof);
+        boolean uplc = UPLC.call("miss", PlutusData.bytes(root), PlutusData.bytes(key.getBytes()), toData(proof))
+                .asBoolean();
+        assertEquals(java, uplc, "Java and UPLC disagree on miss(" + key + ")");
+        return java;
+    }
+
+    /** has() through the Java stubs and through compiled UPLC; both must agree. */
+    static boolean hasBoth(byte[] root, String key, JulcList<ProofStep> proof) {
+        boolean java = MerklePatriciaForestry.has(root, key.getBytes(), VALUE, proof);
+        boolean uplc = UPLC.call("has", PlutusData.bytes(root), PlutusData.bytes(key.getBytes()),
+                PlutusData.bytes(VALUE), toData(proof)).asBoolean();
+        assertEquals(java, uplc, "Java and UPLC disagree on has(" + key + ")");
+        return java;
+    }
+
+    /** First key "key-i" whose hashed path starts with the given byte. */
+    static String keyWithFirstByte(int firstByte) {
+        for (int i = 0; ; i++) {
+            String k = "key-" + i;
+            if (Byte.toUnsignedInt(h(k)[0]) == firstByte) {
+                return k;
+            }
+        }
+    }
+
+    static byte[] withByte(byte[] bs, int index, int value) {
+        byte[] copy = bs.clone();
+        copy[index] = (byte) value;
+        return copy;
+    }
+
+    @Nested
+    class HashedKeyPrefixTests {
+
+        @Test
+        void hashed_keys_start_with_expected_bytes() {
+            assertEquals(0xe1, Byte.toUnsignedInt(h("alice")[0]));
+            assertEquals(0x87, Byte.toUnsignedInt(h("bob")[0]));
+            assertEquals(0x0f, Byte.toUnsignedInt(h("carol")[0]));
+            assertEquals(0x4d, Byte.toUnsignedInt(h("judy")[0]));
+            assertEquals(0x4b, Byte.toUnsignedInt(h("mallory")[0]));
+        }
+    }
+
+    @Nested
+    class ForgedExclusionProofTests {
+
+        @Test
+        void forged_leaf_rebuilding_queried_key_is_rejected() {
+            byte[] root = trie("alice").getRootHash();
+            assertArrayEquals(leaf("alice", 0), root);
+
+            var forged = JulcList.<ProofStep>of(new ProofStep.Leaf(0, h("alice"), hv()));
+            assertFalse(missBoth(root, "alice", forged));
+        }
+
+        @Test
+        void forged_terminal_leaf_after_honest_step_is_rejected() {
+            byte[] root = trie("alice", "bob").getRootHash();
+            var forged = JulcList.<ProofStep>of(
+                    new ProofStep.Leaf(0, h("bob"), hv()),
+                    new ProofStep.Leaf(0, h("alice"), hv()));
+            assertFalse(missBoth(root, "alice", forged));
+        }
+
+        @Test
+        void forged_lookalike_key_differing_before_cursor_is_rejected() {
+            byte[] root = trie("alice", "bob").getRootHash();
+            // 0xe1 -> 0x01 changes only nibble 0; suffix(key, 1) ignores it
+            byte[] lookalike = withByte(h("alice"), 0, 0x01);
+            assertArrayEquals(MerklePatriciaForestry.suffix(h("alice"), 1),
+                    MerklePatriciaForestry.suffix(lookalike, 1));
+
+            var forged = JulcList.<ProofStep>of(
+                    new ProofStep.Leaf(0, h("bob"), hv()),
+                    new ProofStep.Leaf(0, lookalike, hv()));
+            assertFalse(missBoth(root, "alice", forged));
+        }
+
+        @Test
+        void forged_fork_with_neighbor_on_queried_branch_is_rejected() {
+            byte[] root = trie("judy", "mallory").getRootHash();
+            byte[] children = MerklePatriciaForestry.sparseMerkle16(
+                    0xd, leaf("judy", 2), 0xb, leaf("mallory", 2));
+            assertArrayEquals(MerklePatriciaForestry.combine(new byte[]{4}, children), root);
+
+            var forged = JulcList.<ProofStep>of(
+                    new ProofStep.Fork(0, new Neighbor(4, new byte[0], children)));
+            assertFalse(missBoth(root, "judy", forged));
+            assertFalse(missBoth(root, "mallory", forged));
+        }
+
+        @Test
+        void forged_fork_with_out_of_range_nibble_is_rejected() {
+            byte[] root = trie("alice").getRootHash();
+            // cons(0xff, H(alice)) is the leaf encoding suffix(H(alice), 0)
+            var forged = JulcList.<ProofStep>of(
+                    new ProofStep.Fork(0, new Neighbor(255, h("alice"), hv())));
+            assertFalse(missBoth(root, "alice", forged));
+        }
+    }
+
+    @Nested
+    class MalformedProofTests {
+
+        @Test
+        void branch_with_wrong_neighbors_length_is_rejected() {
+            MpfTrie t = trie("alice", "bob");
+            byte[] root = t.getRootHash();
+            var honest = proofOf(t, "carol");
+            byte[] neighbors = ((ProofStep.Branch) honest.head()).neighbors();
+            assertTrue(missBoth(root, "carol", honest));
+
+            assertFalse(missBoth(root, "carol", JulcList.<ProofStep>of(
+                    new ProofStep.Branch(0, Arrays.copyOf(neighbors, 127)))));
+            assertFalse(missBoth(root, "carol", JulcList.<ProofStep>of(
+                    new ProofStep.Branch(0, Arrays.copyOf(neighbors, 129)))));
+            assertFalse(missBoth(root, "carol", JulcList.<ProofStep>of(new ProofStep.Branch(0, new byte[0]))));
+        }
+
+        @Test
+        void leaf_with_wrong_key_or_value_length_is_rejected() {
+            MpfTrie t = trie("alice", "bob");
+            byte[] root = t.getRootHash();
+            assertTrue(hasBoth(root, "alice", JulcList.<ProofStep>of(new ProofStep.Leaf(0, h("bob"), hv()))));
+
+            assertFalse(hasBoth(root, "alice", JulcList.<ProofStep>of(
+                    new ProofStep.Leaf(0, Arrays.copyOf(h("bob"), 31), hv()))));
+            assertFalse(hasBoth(root, "alice", JulcList.<ProofStep>of(
+                    new ProofStep.Leaf(0, Arrays.copyOf(h("bob"), 33), hv()))));
+            assertFalse(hasBoth(root, "alice", JulcList.<ProofStep>of(
+                    new ProofStep.Leaf(0, h("bob"), Arrays.copyOf(hv(), 31)))));
+            assertFalse(hasBoth(root, "alice", JulcList.<ProofStep>of(
+                    new ProofStep.Leaf(0, new byte[0], hv()))));
+            assertFalse(missBoth(root, "carol", JulcList.<ProofStep>of(
+                    new ProofStep.Leaf(0, Arrays.copyOf(h("bob"), 31), hv()))));
+        }
+
+        @Test
+        void fork_with_bad_neighbor_is_rejected() {
+            byte[] root = trie("judy", "mallory", "alice").getRootHash();
+            Neighbor n = judyMalloryNeighbor();
+            assertTrue(hasBoth(root, "alice", JulcList.<ProofStep>of(new ProofStep.Fork(0, n))));
+
+            // root not 32 bytes
+            assertFalse(hasBoth(root, "alice", JulcList.<ProofStep>of(
+                    new ProofStep.Fork(0, new Neighbor(n.nibble(), n.prefix(), Arrays.copyOf(n.root(), 31))))));
+            // prefix byte 16 is not a nibble
+            assertFalse(hasBoth(root, "alice", JulcList.<ProofStep>of(
+                    new ProofStep.Fork(0, new Neighbor(n.nibble(), new byte[]{16}, n.root())))));
+            // nibble out of range
+            assertFalse(hasBoth(root, "alice", JulcList.<ProofStep>of(
+                    new ProofStep.Fork(0, new Neighbor(16, n.prefix(), n.root())))));
+            assertFalse(hasBoth(root, "alice", JulcList.<ProofStep>of(
+                    new ProofStep.Fork(0, new Neighbor(-1, n.prefix(), n.root())))));
+            // neighbor on the queried key's own branch (alice's nibble 0xe)
+            assertFalse(hasBoth(root, "alice", JulcList.<ProofStep>of(
+                    new ProofStep.Fork(0, new Neighbor(0xe, n.prefix(), n.root())))));
+        }
+
+        @Test
+        void including_fails_on_fork_neighbor_on_own_branch() {
+            // including() skips the shape check; doFork itself must refuse this step
+            Neighbor n = judyMalloryNeighbor();
+            var bad = JulcList.<ProofStep>of(new ProofStep.Fork(0, new Neighbor(0xe, n.prefix(), n.root())));
+            assertThrows(RuntimeException.class,
+                    () -> MerklePatriciaForestry.including("alice".getBytes(), VALUE, bad));
+            assertThrows(RuntimeException.class, () -> UPLC.call("including",
+                    PlutusData.bytes("alice".getBytes()), PlutusData.bytes(VALUE), toData(bad)));
+            // the honest neighbor still works through including()
+            assertArrayEquals(trie("judy", "mallory", "alice").getRootHash(), MerklePatriciaForestry.including(
+                    "alice".getBytes(), VALUE, JulcList.<ProofStep>of(new ProofStep.Fork(0, n))));
+        }
+
+        @Test
+        void skip_out_of_range_is_rejected() {
+            MpfTrie t = trie("alice", "bob");
+            byte[] root = t.getRootHash();
+            byte[] neighbors = ((ProofStep.Branch) proofOf(t, "carol").head()).neighbors();
+
+            assertFalse(missBoth(root, "carol", JulcList.<ProofStep>of(new ProofStep.Branch(64, neighbors))));
+            assertFalse(missBoth(root, "carol", JulcList.<ProofStep>of(new ProofStep.Branch(-1, neighbors))));
+            assertFalse(missBoth(root, "carol", JulcList.<ProofStep>of(
+                    new ProofStep.Branch(Integer.MAX_VALUE, neighbors))));
+            assertFalse(hasBoth(root, "alice", JulcList.<ProofStep>of(new ProofStep.Leaf(64, h("bob"), hv()))));
+            assertFalse(hasBoth(root, "alice", JulcList.<ProofStep>of(new ProofStep.Leaf(-1, h("bob"), hv()))));
+            assertFalse(missBoth(root, "carol", JulcList.<ProofStep>of(
+                    new ProofStep.Fork(70, new Neighbor(1, new byte[0], hv())))));
+            // 63 single-nibble steps reach cursor 63; a step skipping 1 more lands on nibble 64
+            var steps = new ArrayList<ProofStep>();
+            for (int i = 0; i < 63; i++) {
+                steps.add(new ProofStep.Branch(0, new byte[128]));
+            }
+            steps.add(new ProofStep.Branch(1, new byte[128]));
+            assertFalse(missBoth(root, "carol", JulcList.of(steps.toArray(new ProofStep[0]))));
+        }
+
+        @Test
+        void proof_deeper_than_path_is_rejected() {
+            byte[] root = trie("alice", "bob").getRootHash();
+            var steps = new ArrayList<ProofStep>();
+            for (int i = 0; i < 65; i++) {
+                steps.add(new ProofStep.Branch(0, new byte[128]));
+            }
+            var tooDeep = JulcList.of(steps.toArray(new ProofStep[0]));
+            assertFalse(missBoth(root, "carol", tooDeep));
+            assertFalse(hasBoth(root, "alice", tooDeep));
+        }
+    }
+
+    /** isWellFormed() through the Java stubs and through compiled UPLC; both must agree. */
+    static boolean wellFormedBoth(byte[] path, ProofStep... steps) {
+        var proof = JulcList.of(steps);
+        boolean java = MerklePatriciaForestry.isWellFormed(path, 0, proof);
+        boolean uplc = UPLC.call("isWellFormed", PlutusData.bytes(path), PlutusData.integer(0), toData(proof))
+                .asBoolean();
+        assertEquals(java, uplc, "Java and UPLC disagree on isWellFormed");
+        return java;
+    }
+
+    /** One rule at a time, on path H(alice) = e1..: each case differs from a valid step in one field. */
+    @Nested
+    class ShapeCheckTests {
+
+        final byte[] path = h("alice");
+        final byte[] h32 = hv();
+
+        @Test
+        void branch_rules() {
+            assertTrue(wellFormedBoth(path, new ProofStep.Branch(0, new byte[128])));
+            assertTrue(wellFormedBoth(path, new ProofStep.Branch(63, new byte[128])));
+            assertFalse(wellFormedBoth(path, new ProofStep.Branch(0, new byte[127])));
+            assertFalse(wellFormedBoth(path, new ProofStep.Branch(0, new byte[129])));
+            assertFalse(wellFormedBoth(path, new ProofStep.Branch(-1, new byte[128])));
+            assertFalse(wellFormedBoth(path, new ProofStep.Branch(64, new byte[128])));
+        }
+
+        @Test
+        void fork_rules() {
+            assertTrue(wellFormedBoth(path, new ProofStep.Fork(0, new Neighbor(0, new byte[]{15, 0}, h32))));
+            assertTrue(wellFormedBoth(path, new ProofStep.Fork(0, new Neighbor(15, new byte[0], h32))));
+            // the path's own nibble at the branch
+            assertFalse(wellFormedBoth(path, new ProofStep.Fork(0, new Neighbor(0xe, new byte[0], h32))));
+            assertFalse(wellFormedBoth(path, new ProofStep.Fork(1, new Neighbor(0x1, new byte[0], h32))));
+            // out-of-range nibble, with a prefix that passes the nibble-byte check
+            assertFalse(wellFormedBoth(path, new ProofStep.Fork(0, new Neighbor(16, new byte[0], h32))));
+            assertFalse(wellFormedBoth(path, new ProofStep.Fork(0, new Neighbor(255, new byte[0], h32))));
+            assertFalse(wellFormedBoth(path, new ProofStep.Fork(0, new Neighbor(-1, new byte[0], h32))));
+            assertFalse(wellFormedBoth(path, new ProofStep.Fork(0, new Neighbor(0, new byte[]{15, 16}, h32))));
+            assertFalse(wellFormedBoth(path, new ProofStep.Fork(0, new Neighbor(0, new byte[0], Arrays.copyOf(h32, 31)))));
+            assertFalse(wellFormedBoth(path, new ProofStep.Fork(0, new Neighbor(0, new byte[0], Arrays.copyOf(h32, 33)))));
+            assertFalse(wellFormedBoth(path, new ProofStep.Fork(64, new Neighbor(0, new byte[0], h32))));
+        }
+
+        @Test
+        void leaf_rules() {
+            byte[] differsAt0 = withByte(path, 0, 0x01);
+            byte[] differsAt1 = withByte(path, 0, 0xe2);
+            byte[] differsAt3 = withByte(path, 1, path[1] ^ 0x01);
+            assertTrue(wellFormedBoth(path, new ProofStep.Leaf(0, differsAt0, h32)));
+            assertTrue(wellFormedBoth(path, new ProofStep.Leaf(1, differsAt1, h32)));
+            assertTrue(wellFormedBoth(path, new ProofStep.Leaf(3, differsAt3, h32)));
+            // the path itself
+            assertFalse(wellFormedBoth(path, new ProofStep.Leaf(0, path, h32)));
+            assertFalse(wellFormedBoth(path, new ProofStep.Leaf(5, path, h32)));
+            // differs from the path, but before the branch nibble
+            assertFalse(wellFormedBoth(path, new ProofStep.Leaf(1, differsAt0, h32)));
+            assertFalse(wellFormedBoth(path, new ProofStep.Leaf(3, differsAt1, h32)));
+            assertFalse(wellFormedBoth(path, new ProofStep.Leaf(4, differsAt3, h32)));
+            // agrees with the path at the branch nibble
+            assertFalse(wellFormedBoth(path, new ProofStep.Leaf(2, differsAt3, h32)));
+            // differs at the branch nibble, but also before it
+            assertFalse(wellFormedBoth(path, new ProofStep.Leaf(1, withByte(path, 0, 0x02), h32)));
+            assertFalse(wellFormedBoth(path, new ProofStep.Leaf(3, withByte(differsAt3, 0, 0x01), h32)));
+            assertFalse(wellFormedBoth(path, new ProofStep.Leaf(2, withByte(withByte(path, 0, 0xe2), 1, path[1] ^ 0x10), h32)));
+            assertFalse(wellFormedBoth(path, new ProofStep.Leaf(0, Arrays.copyOf(differsAt0, 31), h32)));
+            assertFalse(wellFormedBoth(path, new ProofStep.Leaf(0, differsAt0, Arrays.copyOf(h32, 31))));
+            assertFalse(wellFormedBoth(path, new ProofStep.Leaf(64, differsAt0, h32)));
+        }
+
+        @Test
+        void depth_rules() {
+            ProofStep[] full = new ProofStep[64];
+            Arrays.fill(full, new ProofStep.Branch(0, new byte[128]));
+            assertTrue(wellFormedBoth(path, full));
+            ProofStep[] tooDeep = Arrays.copyOf(full, 65);
+            tooDeep[64] = new ProofStep.Branch(0, new byte[128]);
+            assertFalse(wellFormedBoth(path, tooDeep));
+            // rules apply to every step, not only the last
+            assertFalse(wellFormedBoth(path,
+                    new ProofStep.Leaf(0, path, h32),
+                    new ProofStep.Branch(0, new byte[128])));
+            assertFalse(wellFormedBoth(path,
+                    new ProofStep.Branch(0, new byte[128]),
+                    new ProofStep.Fork(0, new Neighbor(MerklePatriciaForestry.nibble(path, 1), new byte[0], h32)),
+                    new ProofStep.Branch(0, new byte[128])));
+        }
+    }
+
+    /** Branch node holding judy and mallory below the shared nibble 4, as a Fork neighbor. */
+    static Neighbor judyMalloryNeighbor() {
+        return new Neighbor(4, new byte[0],
+                MerklePatriciaForestry.sparseMerkle16(0xd, leaf("judy", 2), 0xb, leaf("mallory", 2)));
+    }
+
+    /**
+     * Honest proofs. Roots come from MpfTrie. Leaf and Fork proofs are written out from the
+     * library's node functions, because cardano-client-lib before PR 716 emits Branch steps
+     * for two-child nodes and does not produce Aiken-canonical Fork neighbors.
+     */
+    @Nested
+    class HonestProofTests {
+
+        @Test
+        void honest_miss_with_branch_step() {
+            MpfTrie t = trie("alice", "bob");
+            var proof = proofOf(t, "carol");
+            assertEquals(1, proof.size());
+            assertInstanceOf(ProofStep.Branch.class, proof.head());
+            assertTrue(missBoth(t.getRootHash(), "carol", proof));
+            assertFalse(missBoth(t.getRootHash(), "alice", proof));
+        }
+
+        @Test
+        void honest_leaf_proofs_for_two_keys() {
+            byte[] root = trie("alice", "bob").getRootHash();
+            assertTrue(hasBoth(root, "alice", JulcList.<ProofStep>of(new ProofStep.Leaf(0, h("bob"), hv()))));
+            assertTrue(hasBoth(root, "bob", JulcList.<ProofStep>of(new ProofStep.Leaf(0, h("alice"), hv()))));
+            // the same step is bob's exclusion proof for alice in {bob}
+            assertTrue(missBoth(trie("bob").getRootHash(), "alice",
+                    JulcList.<ProofStep>of(new ProofStep.Leaf(0, h("bob"), hv()))));
+        }
+
+        @Test
+        void honest_terminal_leaf_with_skip() {
+            // miss(mallory) in {judy}: judy's leaf one nibble below the shared prefix 4
+            MpfTrie t = trie("judy");
+            var proof = proofOf(t, "mallory");
+            assertEquals(1, proof.size());
+            var step = assertInstanceOf(ProofStep.Leaf.class, proof.head());
+            assertEquals(1, step.skip());
+            assertArrayEquals(h("judy"), step.key());
+            assertTrue(missBoth(t.getRootHash(), "mallory", proof));
+            // has(mallory) in {judy, mallory} uses the same step
+            assertTrue(hasBoth(trie("judy", "mallory").getRootHash(), "mallory", proof));
+        }
+
+        @Test
+        void honest_non_final_leaf_with_skip() {
+            // judy (4df7..) and k4d (4d52..) share two nibbles; mallory (4b..) shares one.
+            String k4d = keyWithFirstByte(0x4d);
+            assertNotEquals(MerklePatriciaForestry.nibble(h("judy"), 2), MerklePatriciaForestry.nibble(h(k4d), 2));
+            var proof = JulcList.<ProofStep>of(
+                    new ProofStep.Leaf(1, h("mallory"), hv()),
+                    new ProofStep.Leaf(0, h(k4d), hv()));
+
+            assertTrue(hasBoth(trie("judy", "mallory", k4d).getRootHash(), "judy", proof));
+            assertTrue(missBoth(trie("mallory", k4d).getRootHash(), "judy", proof));
+            assertFalse(missBoth(trie("judy", "mallory", k4d).getRootHash(), "judy", proof));
+        }
+
+        @Test
+        void honest_fork_with_skip() {
+            // {judy, k4d} is one branch with prefix 4d; mallory forks off it after nibble 4
+            String k4d = keyWithFirstByte(0x4d);
+            byte[] children = MerklePatriciaForestry.sparseMerkle16(0xf, leaf("judy", 3), 0x5, leaf(k4d, 3));
+            var proof = JulcList.<ProofStep>of(new ProofStep.Fork(1, new Neighbor(0xd, new byte[0], children)));
+
+            assertTrue(missBoth(trie("judy", k4d).getRootHash(), "mallory", proof));
+            assertTrue(hasBoth(trie("judy", k4d, "mallory").getRootHash(), "mallory", proof));
+        }
+
+        @Test
+        void honest_fork_with_neighbor_prefix() {
+            // alice forks off the {judy, k4d} branch, whose own prefix is the nibble d
+            String k4d = keyWithFirstByte(0x4d);
+            byte[] children = MerklePatriciaForestry.sparseMerkle16(0xf, leaf("judy", 3), 0x5, leaf(k4d, 3));
+            var proof = JulcList.<ProofStep>of(new ProofStep.Fork(0, new Neighbor(4, new byte[]{0xd}, children)));
+
+            assertTrue(hasBoth(trie("judy", k4d, "alice").getRootHash(), "alice", proof));
+            assertTrue(missBoth(trie("judy", k4d).getRootHash(), "alice", proof));
+        }
+
+        @Test
+        void honest_fork_for_judy_mallory_neighbor() {
+            var proof = JulcList.<ProofStep>of(new ProofStep.Fork(0, judyMalloryNeighbor()));
+            assertTrue(hasBoth(trie("judy", "mallory", "alice").getRootHash(), "alice", proof));
+            assertTrue(missBoth(trie("judy", "mallory").getRootHash(), "alice", proof));
+        }
+
+        @Test
+        void honest_proofs_for_larger_trie() {
+            var keys = new ArrayList<String>();
+            for (int i = 0; i < 64; i++) {
+                keys.add("member-" + i);
+            }
+            MpfTrie t = trie(keys.toArray(new String[0]));
+            byte[] root = t.getRootHash();
+            for (String k : keys) {
+                var proof = proofOf(t, k);
+                assertTrue(MerklePatriciaForestry.has(root, k.getBytes(), VALUE, proof), "has " + k);
+                assertFalse(MerklePatriciaForestry.miss(root, k.getBytes(), proof), "miss " + k);
+            }
+            for (int i = 0; i < 32; i++) {
+                String k = "absent-" + i;
+                var proof = proofOf(t, k);
+                assertTrue(MerklePatriciaForestry.miss(root, k.getBytes(), proof), "miss " + k);
+                assertFalse(MerklePatriciaForestry.has(root, k.getBytes(), VALUE, proof), "has " + k);
+            }
+            assertTrue(hasBoth(root, keys.get(7), proofOf(t, keys.get(7))));
+            assertTrue(missBoth(root, "absent-3", proofOf(t, "absent-3")));
         }
     }
 }

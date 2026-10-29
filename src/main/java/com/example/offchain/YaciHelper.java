@@ -29,23 +29,63 @@ public final class YaciHelper {
     public static final String YACI_BASE_URL = "http://localhost:8080/api/v1/";
     public static final String YACI_ADMIN_URL = "http://localhost:10000";
 
-    /** Set to true to use JulcTransactionEvaluator for local script evaluation instead of backend /evaluate endpoint. */
-    public static final boolean USE_JULC_EVALUATOR = true;
+    /**
+     * How script execution units are calculated.
+     * <p>
+     * {@code LOCAL} evaluates the scripts in-process with {@link JulcTransactionEvaluator}.
+     * {@code BACKEND} leaves the evaluator unset so QuickTxBuilder falls back to the backend's
+     * {@code POST /utils/txs/evaluate} endpoint (Yaci Store).
+     */
+    public enum EvalMode { LOCAL, BACKEND }
+
+    /** System property selecting the evaluation mode; {@code JULC_EVALUATOR} works as well. */
+    public static final String EVAL_MODE_PROPERTY = "julc.evaluator";
+
+    private static final EvalMode EVAL_MODE = resolveEvalMode();
+    private static boolean evalModeAnnounced = false;
 
     private YaciHelper() {}
 
+    /** The evaluation mode the demos run with, {@code LOCAL} unless configured otherwise. */
+    public static EvalMode evalMode() {
+        return EVAL_MODE;
+    }
+
+    private static EvalMode resolveEvalMode() {
+        String value = System.getProperty(EVAL_MODE_PROPERTY);
+        if (value == null || value.isBlank()) value = System.getenv("JULC_EVALUATOR");
+        if (value == null || value.isBlank()) return EvalMode.LOCAL;
+        return switch (value.trim().toLowerCase()) {
+            case "local", "julc" -> EvalMode.LOCAL;
+            case "backend", "store", "yaci-store" -> EvalMode.BACKEND;
+            default -> throw new IllegalArgumentException("Unknown " + EVAL_MODE_PROPERTY
+                    + " value '" + value + "'; expected 'local' or 'backend'");
+        };
+    }
+
     /**
-     * Returns a JulcTransactionEvaluator if USE_JULC_EVALUATOR is true, otherwise null.
+     * Returns a JulcTransactionEvaluator in {@link EvalMode#LOCAL}, or null in
+     * {@link EvalMode#BACKEND}.
      * When null is passed to .withTxEvaluator(null), QuickTxBuilder uses the default backend evaluation.
      */
     public static JulcTransactionEvaluator julcEvaluator(BackendService backend) {
-        if (!USE_JULC_EVALUATOR) return null;
+        announceEvalMode();
+        if (EVAL_MODE == EvalMode.BACKEND) return null;
         SlotConfig slotConfig = deriveSlotConfig();
         return new JulcTransactionEvaluator(
                 new DefaultUtxoSupplier(backend.getUtxoService()),
                 new DefaultProtocolParamsSupplier(backend.getEpochService()),
                 new DefaultScriptSupplier(backend.getScriptService()),
                 slotConfig);
+    }
+
+    /** Print the evaluation mode once per JVM, so a demo's output says how it was evaluated. */
+    private static void announceEvalMode() {
+        if (evalModeAnnounced) return;
+        evalModeAnnounced = true;
+        System.out.println("  Script evaluation: " + (EVAL_MODE == EvalMode.LOCAL
+                ? "local (JulcTransactionEvaluator)"
+                : "backend " + YACI_BASE_URL + "utils/txs/evaluate (Yaci Store)"));
     }
 
     /**

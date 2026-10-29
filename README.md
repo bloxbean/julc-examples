@@ -39,7 +39,7 @@ src/main/java/com/example/
 ├── nft/                     # CIP-68 NFT (on-chain + off-chain)
 ├── uverify/                 # UVerify document verification (on-chain + off-chain)
 ├── benchmark/               # WingRiders DEX benchmark validators
-├── mpf/                     # Merkle-Patricia Forestry types
+├── mpf/                     # Merkle-Patricia Forestry library and types (see mpf/README.md)
 └── util/                    # Utility classes
 
 src/test/java/com/example/

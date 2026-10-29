@@ -492,6 +492,63 @@ class MpfRegistryValidatorTest extends ContractTest {
         }
     }
 
+    // ---- Forged exclusion proof ----
+
+    /**
+     * Trie {alice, bob}. The forged proof rebuilds alice's own leaf as the "neighbor"
+     * that remains after alice is removed, so a verifier without proof-shape checks
+     * would accept VerifyMiss for a key that is present.
+     */
+    @Nested
+    class ForgedMissProofTests {
+
+        final byte[] alice = "alice".getBytes();
+        final byte[] bob = "bob".getBytes();
+
+        byte[] trieRoot() {
+            var trie = new MpfTrie(new TestNodeStore());
+            trie.put(alice, "100".getBytes());
+            trie.put(bob, "200".getBytes());
+            return trie.getRootHash();
+        }
+
+        JulcList<ProofStep> forgedProof() {
+            return JulcList.of(
+                    new ProofStep.Leaf(0, CryptoLib.blake2b_256(bob), CryptoLib.blake2b_256("200".getBytes())),
+                    new ProofStep.Leaf(0, CryptoLib.blake2b_256(alice), CryptoLib.blake2b_256("100".getBytes())));
+        }
+
+        @Test
+        void verifyMiss_forgedProofForPresentKey_rejected_java() {
+            var datum = new MpfRegistryValidator.MpfDatum(trieRoot());
+            var redeemer = new MpfRegistryValidator.VerifyMiss(alice, forgedProof());
+            var ctx = new DirectJavaTests().buildCtx(new byte[][]{});
+            assertFalse(MpfRegistryValidator.validate(datum, redeemer, ctx));
+        }
+
+        @Test
+        void verifyMiss_forgedProofForPresentKey_rejected_uplc() throws Exception {
+            var program = compileValidator(MpfRegistryValidator.class).program();
+            var proofSteps = new java.util.ArrayList<PlutusData>();
+            for (ProofStep step : forgedProof()) {
+                var l = (ProofStep.Leaf) step;
+                proofSteps.add(PlutusData.constr(2, PlutusData.integer(l.skip()),
+                        PlutusData.bytes(l.key()), PlutusData.bytes(l.value())));
+            }
+            // VerifyMiss = Constr(1, [BData(key), ListData(proof)])
+            var redeemer = PlutusData.constr(1, PlutusData.bytes(alice),
+                    PlutusData.list(proofSteps.toArray(new PlutusData[0])));
+            var ctx = spendingContext(TestDataBuilder.randomTxOutRef_typed(),
+                    PlutusData.constr(0, PlutusData.bytes(trieRoot())))
+                    .redeemer(redeemer)
+                    .buildPlutusData();
+
+            var result = evaluate(program, ctx);
+            assertFailure(result);
+            logBudget("verifyMiss_forgedProofForPresentKey_rejected_uplc", result);
+        }
+    }
+
     private static void logBudget(String testName, EvalResult result) {
         var budget = result.budgetConsumed();
         System.out.println("[" + testName + "] CPU: " + budget.cpuSteps() + ", Mem: " + budget.memoryUnits());

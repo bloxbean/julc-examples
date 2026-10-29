@@ -1,15 +1,15 @@
 plugins {
     id 'java'
     id 'application'
-    id 'org.julclang.julc' version '0.1.0-pre17-8fb33f4-SNAPSHOT'
+    id 'org.julclang.julc' version '0.1.0-pre20'
 }
 
 group = 'com.example'
 version = '0.1.0'
 
 ext {
-    julcVersion = '0.1.0-pre17-8fb33f4-SNAPSHOT'
-    cardanoClientLibVersion = '0.8.0-pre5'
+    julcVersion = '0.1.0-pre20'
+    cardanoClientLibVersion = '0.8.0-pre7'
 }
 
 repositories {
@@ -49,6 +49,8 @@ dependencies {
     implementation "org.julclang:julc-stdlib:${julcVersion}"
 
     implementation "org.julclang:julc-cardano-client-lib:${julcVersion}"
+    // BLS12-381 operations (blst) — used off-chain by the BLS demo to build signatures
+    implementation "org.julclang:julc-bls:${julcVersion}"
     // Annotation processor — compiles @Validator/@MintingPolicy classes to UPLC during javac
     annotationProcessor "org.julclang:julc-annotation-processor:${julcVersion}"
 
@@ -86,6 +88,21 @@ test {
 
 application {
     mainClass = project.findProperty('mainClass') ?: 'com.example.offchain.VestingDemo'
+}
+
+// Script evaluation mode for the demos:
+//   -Pevaluator=local    (default) in-process JulcTransactionEvaluator
+//   -Pevaluator=backend            Yaci Store's /utils/txs/evaluate endpoint
+// JULC_EVALUATOR in the environment works too.
+tasks.named('run', JavaExec) {
+    def evaluator = project.findProperty('evaluator')
+            ?: System.getProperty('julc.evaluator')
+            ?: System.getenv('JULC_EVALUATOR')
+    if (evaluator) {
+        systemProperty 'julc.evaluator', evaluator
+    }
+    // blst is loaded through the FFM API
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
 //tasks.named('compileJava') {

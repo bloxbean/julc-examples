@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ByteStringLibEvalTest {
 
     private static final String WRAPPER = """
+            import org.julclang.stdlib.annotation.OnchainLibrary;
             import org.julclang.stdlib.lib.ByteStringLib;
             import java.math.BigInteger;
 

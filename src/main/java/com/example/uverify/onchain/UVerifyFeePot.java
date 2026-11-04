@@ -88,15 +88,15 @@ public class UVerifyFeePot {
         }
 
         byte[] signerPkh = CryptoLib.blake2b_224(ob.signerPublicKey());
-        boolean signerAuthorized = admins.any(a -> a.equals(signerPkh))
-                || users.any(u -> u.equals(signerPkh));
+        boolean signerAuthorized = admins.any(a -> Builtins.equalsByteString(a, signerPkh))
+                || users.any(u -> Builtins.equalsByteString(u, signerPkh));
         if (!signerAuthorized) return false;
 
         byte[] signerPkhHex = ByteStringLib.toHex(signerPkh);
         byte[] submitterKeyHashHex = ByteStringLib.toHex(ob.submitterKeyHash());
         byte[] expectedMessage = buildExpectedMessage(signerPkhHex, submitterKeyHashHex, ob.ttl());
 
-        if (!ob.message().equals(expectedMessage)) return false;
+        if (!Builtins.equalsByteString(ob.message(), expectedMessage)) return false;
 
         if (!CryptoLib.verifyEd25519Signature(ob.signerPublicKey(), ob.message(), ob.signature())) {
             return false;
@@ -121,7 +121,7 @@ public class UVerifyFeePot {
         for (var output : outputs) {
             if (AddressLib.isScriptAddress(output.address())) {
                 byte[] sh = AddressLib.credentialHash(output.address());
-                if (scriptWhitelist.any(w -> w.equals(sh))) {
+                if (scriptWhitelist.any(w -> Builtins.equalsByteString(w, sh))) {
                     total = total.add(ValuesLib.lovelaceOf(output.value()));
                 }
             }

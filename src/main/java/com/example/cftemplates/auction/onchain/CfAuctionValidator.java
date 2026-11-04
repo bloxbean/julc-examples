@@ -51,7 +51,7 @@ public class CfAuctionValidator {
         AuctionDatum auctionDatum = PlutusData.cast(datumData, AuctionDatum.class);
 
         boolean sellerSigned = ContextsLib.signedBy(txInfo, auctionDatum.seller());
-        boolean noBidderYet = auctionDatum.highestBidder().equals(Builtins.emptyByteString());
+        boolean noBidderYet = Builtins.equalsByteString(auctionDatum.highestBidder(), Builtins.emptyByteString());
         boolean bidNonNegative = auctionDatum.highestBid().compareTo(BigInteger.ZERO) >= 0;
         BigInteger upperBound = IntervalLib.finiteUpperBound(txInfo.validRange());
         boolean notExpired = upperBound.compareTo(auctionDatum.expiration()) <= 0;
@@ -93,9 +93,9 @@ public class CfAuctionValidator {
         boolean notExpired = upperBound.compareTo(currentDatum.expiration()) <= 0;
         boolean higherBid = newDatum.highestBid().compareTo(currentDatum.highestBid()) > 0;
         boolean bidderSigned = ContextsLib.signedBy(txInfo, newDatum.highestBidder());
-        boolean sellerUnchanged = newDatum.seller().equals(currentDatum.seller());
-        boolean policyUnchanged = newDatum.assetPolicy().equals(currentDatum.assetPolicy());
-        boolean nameUnchanged = newDatum.assetName().equals(currentDatum.assetName());
+        boolean sellerUnchanged = Builtins.equalsByteString(newDatum.seller(), currentDatum.seller());
+        boolean policyUnchanged = Builtins.equalsByteString(newDatum.assetPolicy(), currentDatum.assetPolicy());
+        boolean nameUnchanged = Builtins.equalsByteString(newDatum.assetName(), currentDatum.assetName());
         boolean expirationUnchanged = newDatum.expiration().compareTo(currentDatum.expiration()) == 0;
         boolean valueNonDecreasing = outputLovelace.compareTo(inputLovelace) >= 0;
 
@@ -114,11 +114,11 @@ public class CfAuctionValidator {
     }
 
     static boolean checkRefund(JulcList<TxOut> outputs, byte[] prevBidder, BigInteger prevBid) {
-        if (prevBidder.equals(Builtins.emptyByteString())) return true;
+        if (Builtins.equalsByteString(prevBidder, Builtins.emptyByteString())) return true;
         boolean found = false;
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (credHash.equals(prevBidder)) {
+            if (Builtins.equalsByteString(credHash, prevBidder)) {
                 BigInteger lovelace = ValuesLib.lovelaceOf(output.value());
                 if (lovelace.compareTo(prevBid) >= 0) {
                     found = true;
@@ -135,7 +135,7 @@ public class CfAuctionValidator {
         if (!afterExpiration) return false;
 
         byte[] highestBidder = currentDatum.highestBidder();
-        boolean noBids = highestBidder.equals(Builtins.emptyByteString());
+        boolean noBids = Builtins.equalsByteString(highestBidder, Builtins.emptyByteString());
 
         if (noBids) {
             // No bids: seller reclaims, must sign
@@ -154,7 +154,7 @@ public class CfAuctionValidator {
         boolean found = false;
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (credHash.equals(pkh)) {
+            if (Builtins.equalsByteString(credHash, pkh)) {
                 BigInteger lovelace = ValuesLib.lovelaceOf(output.value());
                 if (lovelace.compareTo(amount) >= 0) {
                     found = true;
@@ -170,7 +170,7 @@ public class CfAuctionValidator {
         boolean found = false;
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (credHash.equals(pkh)) {
+            if (Builtins.equalsByteString(credHash, pkh)) {
                 BigInteger qty = ValuesLib.assetOf(output.value(), assetPolicy, assetName);
                 if (qty.compareTo(BigInteger.ZERO) > 0) {
                     found = true;
@@ -185,7 +185,7 @@ public class CfAuctionValidator {
         TxOut result = PlutusData.cast(Builtins.mkNilData(), TxOut.class);
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (credHash.equals(policyBytes)) {
+            if (Builtins.equalsByteString(credHash, policyBytes)) {
                 result = output;
                 break;
             }

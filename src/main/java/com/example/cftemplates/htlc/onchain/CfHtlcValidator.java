@@ -13,6 +13,7 @@ import java.math.BigInteger;
 import java.util.Optional;
 
 import org.julclang.core.PlutusData;
+import org.julclang.stdlib.Builtins;
 
 /**
  * Hash Time-Locked Contract (HTLC) — funds can be claimed by revealing
@@ -47,7 +48,7 @@ public class CfHtlcValidator {
     }
 
     static boolean validateGuess(Guess guess, TxInfo txInfo) {
-        boolean hashMatches = CryptoLib.sha2_256(guess.answer()).equals(secretHash);
+        boolean hashMatches = Builtins.equalsByteString(CryptoLib.sha2_256(guess.answer()), secretHash);
         BigInteger upperBound = IntervalLib.finiteUpperBound(txInfo.validRange());
         boolean beforeExpiration = upperBound.compareTo(expiration) <= 0;
         return hashMatches && beforeExpiration;

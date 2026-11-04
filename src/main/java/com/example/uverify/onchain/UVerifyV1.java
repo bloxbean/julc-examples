@@ -144,12 +144,12 @@ public class UVerifyV1 {
         for (var output : outputs) {
             if (AddressLib.isScriptAddress(output.address())) {
                 byte[] sh = AddressLib.credentialHash(output.address());
-                if (sh.equals(proxyPolicyId)) {
+                if (Builtins.equalsByteString(sh, proxyPolicyId)) {
                     BigInteger qty = ValuesLib.assetOf(output.value(), proxyPolicyId, mintedTokenName);
                     if (qty.compareTo(BigInteger.ZERO) > 0) {
                         PlutusData datumData = OutputLib.getInlineDatum(output);
                         BootstrapDatum bd = (BootstrapDatum)(Object) datumData;
-                        if (bd.tokenName().equals(mintedTokenName)) {
+                        if (Builtins.equalsByteString(bd.tokenName(), mintedTokenName)) {
                             found = true;
                             break;
                         }
@@ -171,7 +171,7 @@ public class UVerifyV1 {
         for (var output : outputs) {
             if (AddressLib.isScriptAddress(output.address())) {
                 byte[] sh = AddressLib.credentialHash(output.address());
-                if (sh.equals(proxyPolicyId)) {
+                if (Builtins.equalsByteString(sh, proxyPolicyId)) {
                     PlutusData datumData = OutputLib.getInlineDatum(output);
                     StateDatum candidate = (StateDatum)(Object) datumData;
                     byte[] candidateId = candidate.id();
@@ -193,7 +193,7 @@ public class UVerifyV1 {
         for (var refInput : refInputs) {
             if (AddressLib.isScriptAddress(refInput.resolved().address())) {
                 byte[] sh = AddressLib.credentialHash(refInput.resolved().address());
-                if (sh.equals(proxyPolicyId)) {
+                if (Builtins.equalsByteString(sh, proxyPolicyId)) {
                     BigInteger bsTokenQty = ValuesLib.assetOf(
                             refInput.resolved().value(), proxyPolicyId, stateDatum.bootstrapName());
                     if (bsTokenQty.compareTo(BigInteger.ZERO) > 0) {
@@ -213,7 +213,7 @@ public class UVerifyV1 {
         if (burnedCount.compareTo(BigInteger.ONE) > 0) return false;
 
         byte[] stateId = stateDatum.id();
-        if (!stateId.equals(newTokenName)) return false;
+        if (!Builtins.equalsByteString(stateId, newTokenName)) return false;
         if (!UVerifyTxLib.hasUniqueId(stateId, inputs)) return false;
 
         long certCount = certificates.size();
@@ -230,7 +230,7 @@ public class UVerifyV1 {
         if (!containsServiceFee(outputs, stateDatum)) return false;
         if (!UVerifyTxLib.tokenNotExpired(validRange, stateDatum.ttl())) return false;
 
-        return signatories.any(sig -> sig.hash().equals(owner));
+        return signatories.any(sig -> Builtins.equalsByteString(sig.hash(), owner));
     }
 
     static boolean handleBurnBootstrap(JulcList<TxInInfo> inputs, JulcList<TxOut> outputs,
@@ -246,10 +246,10 @@ public class UVerifyV1 {
         for (var input : inputs) {
             if (AddressLib.isScriptAddress(input.resolved().address())) {
                 byte[] sh = AddressLib.credentialHash(input.resolved().address());
-                if (sh.equals(proxyPolicyId)) {
+                if (Builtins.equalsByteString(sh, proxyPolicyId)) {
                     PlutusData datumData = OutputLib.getInlineDatum(input.resolved());
                     BootstrapDatum bd = (BootstrapDatum)(Object) datumData;
-                    if (bd.tokenName().equals(burnedTokenName)) {
+                    if (Builtins.equalsByteString(bd.tokenName(), burnedTokenName)) {
                         foundInput = true;
                         break;
                     }
@@ -270,7 +270,7 @@ public class UVerifyV1 {
         for (var input : inputs) {
             if (AddressLib.isScriptAddress(input.resolved().address())) {
                 byte[] sh = AddressLib.credentialHash(input.resolved().address());
-                if (sh.equals(proxyPolicyId)) {
+                if (Builtins.equalsByteString(sh, proxyPolicyId)) {
                     PlutusData datumData = OutputLib.getInlineDatum(input.resolved());
                     stateDatum = (StateDatum)(Object) datumData;
                     foundState = true;
@@ -286,9 +286,9 @@ public class UVerifyV1 {
         if (createdCount.compareTo(BigInteger.ZERO) > 0) return false;
 
         byte[] burnedTokenName = ValuesLib.findTokenName(mint, proxyPolicyId, BigInteger.ONE.negate());
-        if (!burnedTokenName.equals(stateDatum.id())) return false;
+        if (!Builtins.equalsByteString(burnedTokenName, stateDatum.id())) return false;
         byte[] stateOwner = stateDatum.owner();
-        if (!signatories.any(sig -> sig.hash().equals(stateOwner))) return false;
+        if (!signatories.any(sig -> Builtins.equalsByteString(sig.hash(), stateOwner))) return false;
         if (stateDatum.keepAsOracle()) return false;
         if (!certificates.isEmpty()) return false;
 
@@ -304,7 +304,7 @@ public class UVerifyV1 {
         for (var input : inputs) {
             if (AddressLib.isScriptAddress(input.resolved().address())) {
                 byte[] sh = AddressLib.credentialHash(input.resolved().address());
-                if (sh.equals(proxyPolicyId)) {
+                if (Builtins.equalsByteString(sh, proxyPolicyId)) {
                     PlutusData datumData = OutputLib.getInlineDatum(input.resolved());
                     curDatum = (StateDatum)(Object) datumData;
                     foundCurrent = true;
@@ -314,7 +314,7 @@ public class UVerifyV1 {
         }
         if (!foundCurrent) return false;
         byte[] curOwner = curDatum.owner();
-        if (!signatories.any(sig -> sig.hash().equals(curOwner))) return false;
+        if (!signatories.any(sig -> Builtins.equalsByteString(sig.hash(), curOwner))) return false;
 
         boolean foundNext = false;
         StateDatum nextDatum = (StateDatum)(Object) Builtins.mkNilData();
@@ -323,7 +323,7 @@ public class UVerifyV1 {
         for (var output : outputs) {
             if (AddressLib.isScriptAddress(output.address())) {
                 byte[] sh = AddressLib.credentialHash(output.address());
-                if (sh.equals(proxyPolicyId)) {
+                if (Builtins.equalsByteString(sh, proxyPolicyId)) {
                     scriptOutputCount = scriptOutputCount + 1;
                     BigInteger tokenQty = ValuesLib.assetOf(output.value(), proxyPolicyId, curDatum.id());
                     if (tokenQty.compareTo(BigInteger.ZERO) > 0) {
@@ -369,31 +369,31 @@ public class UVerifyV1 {
         if (!allValid) return false;
 
         byte[] computedHash = CryptoLib.sha2_256(aggregate);
-        return computedHash.equals(expectedHash);
+        return Builtins.equalsByteString(computedHash, expectedHash);
     }
 
     static boolean stateDatumIsValid(StateDatum sd, byte[] owner, BootstrapDatum bd) {
-        if (!sd.owner().equals(owner)) return false;
+        if (!Builtins.equalsByteString(sd.owner(), owner)) return false;
         if (!sd.fee().equals(bd.fee())) return false;
         if (!sd.feeInterval().equals(bd.feeInterval())) return false;
         if (!Builtins.equalsData(sd.feeReceivers(), bd.feeReceivers())) return false;
         if (!sd.ttl().equals(bd.ttl())) return false;
         if (!sd.countdown().equals(bd.transactionLimit().subtract(BigInteger.ONE))) return false;
         if (!sd.batchSize().equals(bd.batchSize())) return false;
-        if (!sd.bootstrapName().equals(bd.tokenName())) return false;
+        if (!Builtins.equalsByteString(sd.bootstrapName(), bd.tokenName())) return false;
         return true;
     }
 
     static boolean verifyStateMutation(StateDatum next, StateDatum cur) {
         if (cur.keepAsOracle()) return false;
-        if (!next.id().equals(cur.id())) return false;
-        if (!next.owner().equals(cur.owner())) return false;
+        if (!Builtins.equalsByteString(next.id(), cur.id())) return false;
+        if (!Builtins.equalsByteString(next.owner(), cur.owner())) return false;
         if (!next.fee().equals(cur.fee())) return false;
         if (!next.feeInterval().equals(cur.feeInterval())) return false;
         if (!Builtins.equalsData(next.feeReceivers(), cur.feeReceivers())) return false;
         if (!next.ttl().equals(cur.ttl())) return false;
         if (!next.batchSize().equals(cur.batchSize())) return false;
-        if (!next.bootstrapName().equals(cur.bootstrapName())) return false;
+        if (!Builtins.equalsByteString(next.bootstrapName(), cur.bootstrapName())) return false;
         if (next.keepAsOracle() != cur.keepAsOracle()) return false;
         return next.countdown().equals(cur.countdown().subtract(BigInteger.ONE));
     }
@@ -432,7 +432,7 @@ public class UVerifyV1 {
         for (var output : outputs) {
             if (AddressLib.isScriptAddress(output.address())) {
                 byte[] sh = AddressLib.credentialHash(output.address());
-                if (sh.equals(proxyPolicyId)
+                if (Builtins.equalsByteString(sh, proxyPolicyId)
                         && ValuesLib.containsPolicy(output.value(), proxyPolicyId)) {
                     clean = false;
                     break;
@@ -449,7 +449,7 @@ public class UVerifyV1 {
     static boolean certificateIsValid(UVerifyCertificate cert, JulcList<PubKeyHash> signatories) {
         if (cert.hash().length == 0) return false;
         if (cert.issuer().length == 0) return false;
-        return signatories.any(sig -> sig.hash().equals(cert.issuer()));
+        return signatories.any(sig -> Builtins.equalsByteString(sig.hash(), cert.issuer()));
     }
 
     static byte[] certificateToByteArray(UVerifyCertificate cert) {
@@ -463,7 +463,7 @@ public class UVerifyV1 {
 
     static boolean oneOfAdminKeysSigned(JulcList<PubKeyHash> signatories) {
         return signatories.any(sig ->
-                sig.hash().equals(adminKey1) || sig.hash().equals(adminKey2));
+                Builtins.equalsByteString(sig.hash(), adminKey1) || Builtins.equalsByteString(sig.hash(), adminKey2));
     }
 
 }

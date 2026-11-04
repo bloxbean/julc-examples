@@ -70,7 +70,7 @@ public class CfSimpleWalletValidator {
         boolean validOutput = false;
         for (var output : txInfo.outputs()) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (credHash.equals(policyBytes)) {
+            if (Builtins.equalsByteString(credHash, policyBytes)) {
                 // Check has the minted token
                 if (ValuesLib.containsPolicy(output.value(), policyBytes)) {
                     // Check inline datum exists (PaymentIntent)

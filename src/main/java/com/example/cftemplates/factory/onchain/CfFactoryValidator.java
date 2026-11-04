@@ -97,7 +97,7 @@ public class CfFactoryValidator {
         for (var input : inputs) {
             byte[] txHash = (byte[])(Object) input.outRef().txId();
             BigInteger idx = input.outRef().index();
-            if (txHash.equals(seedTxHash) && idx.compareTo(seedIndex) == 0) {
+            if (Builtins.equalsByteString(txHash, seedTxHash) && idx.compareTo(seedIndex) == 0) {
                 found = true;
                 break;
             }
@@ -108,7 +108,7 @@ public class CfFactoryValidator {
     static boolean listContainsBytes(JulcList<byte[]> list, byte[] target) {
         boolean found = false;
         for (var item : list) {
-            if (item.equals(target)) {
+            if (Builtins.equalsByteString(item, target)) {
                 found = true;
                 break;
             }

@@ -72,7 +72,7 @@ public class CfWalletFundsValidator {
         TxInInfo result = (TxInInfo)(Object) Builtins.mkNilData();
         for (var input : inputs) {
             byte[] credHash = AddressLib.credentialHash(input.resolved().address());
-            if (credHash.equals(walletPolicy)) {
+            if (Builtins.equalsByteString(credHash, walletPolicy)) {
                 if (ValuesLib.containsPolicy(input.resolved().value(), walletPolicy)) {
                     result = input;
                     break;

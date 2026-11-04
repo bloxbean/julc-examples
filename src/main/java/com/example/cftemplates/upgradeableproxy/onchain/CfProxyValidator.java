@@ -139,7 +139,7 @@ public class CfProxyValidator {
         boolean oldOwnerSigned = ContextsLib.signedBy(txInfo, oldDatum.scriptOwner());
 
         // If owner changed, new owner must also sign
-        boolean ownerChangeOk = oldDatum.scriptOwner().equals(newDatum.scriptOwner())
+        boolean ownerChangeOk = Builtins.equalsByteString(oldDatum.scriptOwner(), newDatum.scriptOwner())
                 || ContextsLib.signedBy(txInfo, newDatum.scriptOwner());
 
         return oldOwnerSigned && ownerChangeOk;
@@ -172,7 +172,7 @@ public class CfProxyValidator {
         for (var input : inputs) {
             byte[] txHash = (byte[])(Object) input.outRef().txId();
             BigInteger idx = input.outRef().index();
-            if (txHash.equals(seedTxHash) && idx.compareTo(seedIndex) == 0) {
+            if (Builtins.equalsByteString(txHash, seedTxHash) && idx.compareTo(seedIndex) == 0) {
                 found = true;
                 break;
             }
@@ -184,7 +184,7 @@ public class CfProxyValidator {
         ProxyDatum result = (ProxyDatum)(Object) Builtins.mkNilData();
         for (var refIn : refInputs) {
             byte[] credHash = AddressLib.credentialHash(refIn.resolved().address());
-            if (credHash.equals(policyBytes)) {
+            if (Builtins.equalsByteString(credHash, policyBytes)) {
                 BigInteger tokenQty = ValuesLib.assetOf(refIn.resolved().value(), policyBytes, stateTokenName);
                 if (tokenQty.compareTo(BigInteger.ONE) == 0) {
                     PlutusData datumData = OutputLib.getInlineDatum(refIn.resolved());
@@ -200,7 +200,7 @@ public class CfProxyValidator {
         BigInteger count = BigInteger.ZERO;
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (credHash.equals(scriptHash)) {
+            if (Builtins.equalsByteString(credHash, scriptHash)) {
                 count = count.add(BigInteger.ONE);
             }
         }
@@ -215,7 +215,7 @@ public class CfProxyValidator {
             if (tag == 1L) { // ScriptCredential = tag 1
                 var fields = Builtins.constrFields(cred);
                 byte[] hash = Builtins.unBData(Builtins.headList(fields));
-                if (hash.equals(scriptHash)) {
+                if (Builtins.equalsByteString(hash, scriptHash)) {
                     found = true;
                     break;
                 }

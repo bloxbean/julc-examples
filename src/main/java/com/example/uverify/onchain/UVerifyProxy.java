@@ -67,7 +67,7 @@ public class UVerifyProxy {
     static boolean handleMintAdmin(TxInfo txInfo, byte[] ownPolicyId) {
         boolean utxoRefConsumed = false;
         for (var input : txInfo.inputs()) {
-            if (input.outRef().txId().equals(utxoRefTxId)
+            if (Builtins.equalsByteString(input.outRef().txId().hash(), utxoRefTxId)
                     && input.outRef().index().equals(utxoRefIdx)) {
                 utxoRefConsumed = true;
                 break;
@@ -84,7 +84,7 @@ public class UVerifyProxy {
         for (var output : txInfo.outputs()) {
             if (AddressLib.isScriptAddress(output.address())) {
                 byte[] scriptHash = AddressLib.credentialHash(output.address());
-                if (scriptHash.equals(ownPolicyId)) {
+                if (Builtins.equalsByteString(scriptHash, ownPolicyId)) {
                     BigInteger tokenQty = ValuesLib.assetOf(output.value(), ownPolicyId, stn);
                     if (tokenQty.equals(BigInteger.ONE)) {
                         PlutusData datumData = OutputLib.getInlineDatum(output);
@@ -108,7 +108,7 @@ public class UVerifyProxy {
         for (var refInput : txInfo.referenceInputs()) {
             if (AddressLib.isScriptAddress(refInput.resolved().address())) {
                 byte[] scriptHash = AddressLib.credentialHash(refInput.resolved().address());
-                if (scriptHash.equals(ownPolicyId)) {
+                if (Builtins.equalsByteString(scriptHash, ownPolicyId)) {
                     BigInteger tokenQty = ValuesLib.assetOf(refInput.resolved().value(), ownPolicyId, stn);
                     if (tokenQty.compareTo(BigInteger.ZERO) > 0) {
                         PlutusData datumData = OutputLib.getInlineDatum(refInput.resolved());
@@ -138,10 +138,10 @@ public class UVerifyProxy {
         for (var output : txInfo.outputs()) {
             if (AddressLib.isScriptAddress(output.address())) {
                 byte[] scriptHash = AddressLib.credentialHash(output.address());
-                if (scriptHash.equals(ownScriptHash)) {
+                if (Builtins.equalsByteString(scriptHash, ownScriptHash)) {
                     PlutusData datumData = OutputLib.getInlineDatum(output);
                     ProxyDatum newPd = (ProxyDatum)(Object) datumData;
-                    if (!pd.scriptOwner().equals(newPd.scriptOwner())) {
+                    if (!Builtins.equalsByteString(pd.scriptOwner(), newPd.scriptOwner())) {
                         if (!ContextsLib.signedBy(txInfo, newPd.scriptOwner())) {
                             ownerChangeBlocked = true;
                             break;
@@ -163,7 +163,7 @@ public class UVerifyProxy {
         for (var refInput : txInfo.referenceInputs()) {
             if (AddressLib.isScriptAddress(refInput.resolved().address())) {
                 byte[] scriptHash = AddressLib.credentialHash(refInput.resolved().address());
-                if (scriptHash.equals(ownScriptHash)) {
+                if (Builtins.equalsByteString(scriptHash, ownScriptHash)) {
                     BigInteger tokenQty = ValuesLib.assetOf(refInput.resolved().value(), ownScriptHash, stn);
                     if (tokenQty.compareTo(BigInteger.ZERO) > 0) {
                         PlutusData datumData = OutputLib.getInlineDatum(refInput.resolved());

@@ -102,7 +102,7 @@ public class CfAnonymousDataValidator {
             var fields = Builtins.constrFields(entry);
             byte[] policy = Builtins.unBData(Builtins.headList(fields));
             // Skip ADA (empty policy)
-            if (!policy.equals(Builtins.emptyByteString())) {
+            if (!Builtins.equalsByteString(policy, Builtins.emptyByteString())) {
                 byte[] tokenName = Builtins.unBData(Builtins.headList(Builtins.tailList(fields)));
                 result = tokenName;
                 break;
@@ -115,7 +115,7 @@ public class CfAnonymousDataValidator {
     static boolean checkNonAdaTokenQtyIsOne(TxOut output) {
         boolean qtyIsOne = false;
         for (AssetEntry asset : ValuesLib.flattenTyped(output.value())) {
-            if (!asset.policyId().equals(Builtins.emptyByteString())) {
+            if (!Builtins.equalsByteString(asset.policyId(), Builtins.emptyByteString())) {
                 if (asset.amount().compareTo(BigInteger.ONE) == 0) {
                     qtyIsOne = true;
                 }
@@ -129,7 +129,7 @@ public class CfAnonymousDataValidator {
     static long countNonAdaTokens(TxOut output) {
         long count = 0;
         for (AssetEntry asset : ValuesLib.flattenTyped(output.value())) {
-            if (!asset.policyId().equals(Builtins.emptyByteString())) {
+            if (!Builtins.equalsByteString(asset.policyId(), Builtins.emptyByteString())) {
                 count = count + 1;
             }
         }
@@ -141,7 +141,7 @@ public class CfAnonymousDataValidator {
         for (PubKeyHash signer : signatories) {
             byte[] signerBytes = signer.hash();
             byte[] reconstructed = CryptoLib.blake2b_256(Builtins.appendByteString(signerBytes, nonce));
-            if (reconstructed.equals(committedId)) {
+            if (Builtins.equalsByteString(reconstructed, committedId)) {
                 found = true;
                 break;
             }

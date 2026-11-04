@@ -66,17 +66,17 @@ public class CfIdentityValidator {
         if (inputLovelace.compareTo(outputLovelace) != 0) return false;
 
         return switch (redeemer) {
-            case TransferOwner t -> t.newOwner().equals(newState.owner())
+            case TransferOwner t -> Builtins.equalsByteString(t.newOwner(), newState.owner())
                     && delegatesEqual(delegates, newState.delegates());
-            case AddDelegate a -> owner.equals(newState.owner())
+            case AddDelegate a -> Builtins.equalsByteString(owner, newState.owner())
                     && !hasDelegate(delegates, a.delegate())
                     && hasDelegate(newState.delegates(), a.delegate())
-                    && !a.delegate().equals(owner)
+                    && !Builtins.equalsByteString(a.delegate(), owner)
                     // Prevent adding already-expired delegates (matches Aiken's valid_before check)
                     && IntervalLib.finiteUpperBound(txInfo.validRange()).compareTo(a.expires()) <= 0
                     // Ensure exactly 1 delegate was added
                     && newState.delegates().size() == delegates.size() + 1;
-            case RemoveDelegate r -> owner.equals(newState.owner())
+            case RemoveDelegate r -> Builtins.equalsByteString(owner, newState.owner())
                     && hasDelegate(delegates, r.delegate())
                     && !hasDelegate(newState.delegates(), r.delegate())
                     // Ensure exactly 1 delegate was removed
@@ -85,7 +85,7 @@ public class CfIdentityValidator {
     }
 
     static boolean hasDelegate(JulcList<Delegate> delegates, byte[] key) {
-        return delegates.any(d -> d.key().equals(key));
+        return delegates.any(d -> Builtins.equalsByteString(d.key(), key));
     }
 
     static boolean delegatesEqual(JulcList<Delegate> a, JulcList<Delegate> b) {

@@ -71,8 +71,8 @@ public class CfEscrowValidator {
         ActiveEscrow activeDatum = PlutusData.cast(outputDatumData, ActiveEscrow.class);
 
         // Verify datum fields preserved correctly
-        boolean initiatorCorrect = activeDatum.initiator().equals(initDatum.initiator());
-        boolean recipientCorrect = activeDatum.recipient().equals(rd.recipient());
+        boolean initiatorCorrect = Builtins.equalsByteString(activeDatum.initiator(), initDatum.initiator());
+        boolean recipientCorrect = Builtins.equalsByteString(activeDatum.recipient(), rd.recipient());
         boolean initiatorAmtCorrect = activeDatum.initiatorAmount().compareTo(initDatum.initiatorAmount()) == 0;
         boolean recipientAmtCorrect = activeDatum.recipientAmount().compareTo(rd.recipientAmount()) == 0;
 
@@ -137,7 +137,7 @@ public class CfEscrowValidator {
         boolean found = false;
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (credHash.equals(pkh)) {
+            if (Builtins.equalsByteString(credHash, pkh)) {
                 BigInteger lovelace = ValuesLib.lovelaceOf(output.value());
                 if (lovelace.compareTo(amount) >= 0) {
                     found = true;

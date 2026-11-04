@@ -70,7 +70,7 @@ public class CfTokenTransferValidator {
     static boolean hasNonAdaTokens(TxOut output) {
         boolean found = false;
         for (AssetEntry asset : ValuesLib.flattenTyped(output.value())) {
-            if (!asset.policyId().equals(Builtins.emptyByteString())) {
+            if (!Builtins.equalsByteString(asset.policyId(), Builtins.emptyByteString())) {
                 found = true;
                 break;
             }

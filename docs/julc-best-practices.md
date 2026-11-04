@@ -671,7 +671,7 @@ if (!allValid) return false;
 for (var output : outputs) {
     if (AddressLib.isScriptAddress(output.address())) {
         byte[] sh = AddressLib.credentialHash(output.address());
-        if (sh.equals(expectedScriptHash)) {
+        if (Builtins.equalsByteString(sh, expectedScriptHash)) {
             PlutusData datumData = OutputLib.getInlineDatum(output);
             MyDatum datum = (MyDatum)(Object) datumData;
             // Use datum...
@@ -964,7 +964,7 @@ a fixed two-byte big-endian output index and fails if the index exceeds 65535.
 list.contains(byteArrayValue)
 
 // Safer — always works
-list.any(item -> item.equals(byteArrayValue))
+list.any(item -> Builtins.equalsByteString(item, byteArrayValue))
 ```
 
 ### 10.5 Sealed Interface Tag Assignment

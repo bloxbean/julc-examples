@@ -25,7 +25,7 @@ public class UVerifyTxLib {
 
     static boolean oneOfKeysSigned(JulcList<PubKeyHash> signatories, JulcList<byte[]> keys) {
         return signatories.any(sig ->
-                keys.any(k -> sig.hash().equals(k)));
+                keys.any(k -> Builtins.equalsByteString(sig.hash(), k)));
     }
 
     // === Input lookup ===
@@ -47,7 +47,7 @@ public class UVerifyTxLib {
         for (var input : inputs) {
             byte[] sh = AddressLib.credentialHash(input.resolved().address());
             if (sh.length > 0 && AddressLib.isScriptAddress(input.resolved().address())
-                    && sh.equals(scriptHash)) {
+                    && Builtins.equalsByteString(sh, scriptHash)) {
                 found = true;
                 break;
             }
@@ -95,7 +95,7 @@ public class UVerifyTxLib {
         for (var output : outputs) {
             byte[] pkh = AddressLib.credentialHash(output.address());
             if (pkh.length > 0 && AddressLib.isPubKeyAddress(output.address())
-                    && pkh.equals(recv)) {
+                    && Builtins.equalsByteString(pkh, recv)) {
                 BigInteger lovelace = ValuesLib.lovelaceOf(output.value());
                 if (lovelace.compareTo(minFee) >= 0) {
                     paid = true;
@@ -126,7 +126,7 @@ public class UVerifyTxLib {
             BigInteger idx = input.outRef().index();
             byte[] idxBytes = ByteStringLib.integerToByteString(false, 2, idx.longValue());
             byte[] computed = CryptoLib.sha2_256(ByteStringLib.append(txId, idxBytes));
-            if (computed.equals(expectedId)) {
+            if (Builtins.equalsByteString(computed, expectedId)) {
                 found = true;
                 break;
             }

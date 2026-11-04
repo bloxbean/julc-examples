@@ -64,7 +64,7 @@ public class CfScriptLogicV1 {
     static boolean validateSpend(V1Redeemer redeemer) {
         // Password must equal "Hello, World!" (UTF-8 bytes)
         byte[] expected = helloWorldBytes();
-        return redeemer.password().equals(expected);
+        return Builtins.equalsByteString(redeemer.password(), expected);
     }
 
     static byte[] helloWorldBytes() {
@@ -89,7 +89,7 @@ public class CfScriptLogicV1 {
         boolean found = false;
         for (var input : inputs) {
             byte[] credHash = AddressLib.credentialHash(input.resolved().address());
-            if (credHash.equals(scriptHash)) {
+            if (Builtins.equalsByteString(credHash, scriptHash)) {
                 found = true;
                 break;
             }

@@ -54,7 +54,7 @@ public class CfScriptLogicV2 {
 
         // Token name must NOT equal invalidTokenName
         byte[] tokenName = ValuesLib.findTokenName(txInfo.mint(), proxyPolicyId, BigInteger.ONE);
-        boolean nameValid = !tokenName.equals(redeemer.invalidTokenName());
+        boolean nameValid = !Builtins.equalsByteString(tokenName, redeemer.invalidTokenName());
 
         return singleToken && nameValid;
     }
@@ -63,7 +63,7 @@ public class CfScriptLogicV2 {
         boolean found = false;
         for (var input : inputs) {
             byte[] credHash = AddressLib.credentialHash(input.resolved().address());
-            if (credHash.equals(scriptHash)) {
+            if (Builtins.equalsByteString(credHash, scriptHash)) {
                 found = true;
                 break;
             }

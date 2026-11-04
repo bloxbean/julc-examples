@@ -8,6 +8,7 @@ import org.julclang.stdlib.annotation.Param;
 import org.julclang.stdlib.annotation.SpendingValidator;
 import org.julclang.stdlib.lib.AddressLib;
 import org.julclang.stdlib.lib.ValuesLib;
+import org.julclang.stdlib.Builtins;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -48,7 +49,7 @@ public class CfPaymentSplitterValidator {
         boolean valid = true;
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (!payees.any(p -> p.equals(credHash))) {
+            if (!payees.any(p -> Builtins.equalsByteString(p, credHash))) {
                 valid = false;
                 break;
             }
@@ -80,7 +81,7 @@ public class CfPaymentSplitterValidator {
         BigInteger total = BigInteger.ZERO;
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (credHash.equals(payeePkh)) {
+            if (Builtins.equalsByteString(credHash, payeePkh)) {
                 total = total.add(ValuesLib.lovelaceOf(output.value()));
             }
         }
@@ -91,7 +92,7 @@ public class CfPaymentSplitterValidator {
         BigInteger total = BigInteger.ZERO;
         for (var input : inputs) {
             byte[] credHash = AddressLib.credentialHash(input.resolved().address());
-            if (credHash.equals(payeePkh)) {
+            if (Builtins.equalsByteString(credHash, payeePkh)) {
                 total = total.add(ValuesLib.lovelaceOf(input.resolved().value()));
             }
         }

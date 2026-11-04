@@ -126,7 +126,7 @@ public class CfCrowdfundValidator {
     }
 
     static boolean isSignedByKey(JulcList<PubKeyHash> signers, byte[] key) {
-        return signers.any(sig -> ((byte[])(Object) sig).equals(key));
+        return signers.any(sig -> Builtins.equalsByteString((byte[])(Object) sig, key));
     }
 
     static boolean checkDonorsRemoved(JulcMap<byte[], BigInteger> newWallets, JulcList<PubKeyHash> signers) {

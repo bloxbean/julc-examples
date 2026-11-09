@@ -1,14 +1,14 @@
 package com.example.cftemplates.factory.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Param;
-import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
-import com.bloxbean.cardano.julc.stdlib.lib.*;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.MultiValidator;
+import org.julclang.stdlib.annotation.Param;
+import org.julclang.stdlib.annotation.Purpose;
+import org.julclang.stdlib.lib.*;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -97,7 +97,7 @@ public class CfFactoryValidator {
         for (var input : inputs) {
             byte[] txHash = (byte[])(Object) input.outRef().txId();
             BigInteger idx = input.outRef().index();
-            if (txHash.equals(seedTxHash) && idx.compareTo(seedIndex) == 0) {
+            if (Builtins.equalsByteString(txHash, seedTxHash) && idx.compareTo(seedIndex) == 0) {
                 found = true;
                 break;
             }
@@ -108,7 +108,7 @@ public class CfFactoryValidator {
     static boolean listContainsBytes(JulcList<byte[]> list, byte[] target) {
         boolean found = false;
         for (var item : list) {
-            if (item.equals(target)) {
+            if (Builtins.equalsByteString(item, target)) {
                 found = true;
                 break;
             }

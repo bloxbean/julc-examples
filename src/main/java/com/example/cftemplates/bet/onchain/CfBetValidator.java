@@ -1,17 +1,17 @@
 package com.example.cftemplates.bet.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
-import com.bloxbean.cardano.julc.stdlib.lib.AddressLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
-import com.bloxbean.cardano.julc.stdlib.lib.IntervalLib;
-import com.bloxbean.cardano.julc.stdlib.lib.OutputLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.MultiValidator;
+import org.julclang.stdlib.annotation.Purpose;
+import org.julclang.stdlib.lib.AddressLib;
+import org.julclang.stdlib.lib.ContextsLib;
+import org.julclang.stdlib.lib.IntervalLib;
+import org.julclang.stdlib.lib.OutputLib;
+import org.julclang.stdlib.lib.ValuesLib;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -46,8 +46,8 @@ public class CfBetValidator {
         BetDatum betDatum = (BetDatum)(Object) datumData;
 
         boolean player1Signed = ContextsLib.signedBy(txInfo, betDatum.player1());
-        boolean player2Empty = betDatum.player2().equals(Builtins.emptyByteString());
-        boolean oracleNotPlayer1 = !betDatum.oracle().equals(betDatum.player1());
+        boolean player2Empty = Builtins.equalsByteString(betDatum.player2(), Builtins.emptyByteString());
+        boolean oracleNotPlayer1 = !Builtins.equalsByteString(betDatum.oracle(), betDatum.player1());
         BigInteger upperBound = IntervalLib.finiteUpperBound(txInfo.validRange());
         boolean notExpired = upperBound.compareTo(betDatum.expiration()) <= 0;
 
@@ -80,12 +80,12 @@ public class CfBetValidator {
 
         byte[] joiningPlayer = newDatum.player2();
 
-        boolean noPlayer2Yet = currentDatum.player2().equals(Builtins.emptyByteString());
+        boolean noPlayer2Yet = Builtins.equalsByteString(currentDatum.player2(), Builtins.emptyByteString());
         boolean player2Signed = ContextsLib.signedBy(txInfo, joiningPlayer);
-        boolean oracleUnchanged = newDatum.oracle().equals(currentDatum.oracle());
-        boolean player1Unchanged = newDatum.player1().equals(currentDatum.player1());
-        boolean notSameAsPlayer1 = !joiningPlayer.equals(currentDatum.player1());
-        boolean notSameAsOracle = !joiningPlayer.equals(currentDatum.oracle());
+        boolean oracleUnchanged = Builtins.equalsByteString(newDatum.oracle(), currentDatum.oracle());
+        boolean player1Unchanged = Builtins.equalsByteString(newDatum.player1(), currentDatum.player1());
+        boolean notSameAsPlayer1 = !Builtins.equalsByteString(joiningPlayer, currentDatum.player1());
+        boolean notSameAsOracle = !Builtins.equalsByteString(joiningPlayer, currentDatum.oracle());
         boolean hasBetToken = ValuesLib.containsPolicy(ownInput.value(), ownHash);
         boolean potDoubled = outputLovelace.compareTo(inputLovelace.multiply(BigInteger.TWO)) == 0;
         boolean expirationUnchanged = newDatum.expiration().compareTo(currentDatum.expiration()) == 0;
@@ -103,8 +103,8 @@ public class CfBetValidator {
         byte[] oracle = currentDatum.oracle();
         BigInteger expiration = currentDatum.expiration();
 
-        boolean winnerIsPlayer = winner.equals(player1) || winner.equals(player2);
-        boolean bothJoined = !player2.equals(Builtins.emptyByteString());
+        boolean winnerIsPlayer = Builtins.equalsByteString(winner, player1) || Builtins.equalsByteString(winner, player2);
+        boolean bothJoined = !Builtins.equalsByteString(player2, Builtins.emptyByteString());
         boolean oracleSigned = ContextsLib.signedBy(txInfo, oracle);
         BigInteger lowerBound = IntervalLib.finiteLowerBound(txInfo.validRange());
         boolean afterExpiration = lowerBound.compareTo(expiration) >= 0;
@@ -119,7 +119,7 @@ public class CfBetValidator {
         boolean found = false;
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (credHash.equals(winner)) {
+            if (Builtins.equalsByteString(credHash, winner)) {
                 found = true;
                 break;
             }
@@ -137,7 +137,7 @@ public class CfBetValidator {
         TxOut result = (TxOut)(Object) Builtins.mkNilData();
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (credHash.equals(policyBytes)) {
+            if (Builtins.equalsByteString(credHash, policyBytes)) {
                 result = output;
                 break;
             }

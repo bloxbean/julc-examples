@@ -1,9 +1,9 @@
 package com.example.uverify.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.testkit.*;
+import org.julclang.core.PlutusData;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.testkit.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -79,7 +79,7 @@ class UVerifyFeePotTest extends ContractTest {
                 Optional.empty());
     }
 
-    com.bloxbean.cardano.julc.core.Program compileAndApplyParams() {
+    org.julclang.core.Program compileAndApplyParams() {
         var result = compileValidator(UVerifyFeePot.class);
         assertFalse(result.hasErrors(), "UVerifyFeePot should compile: " + result);
         return result.program().applyParams(
@@ -349,12 +349,12 @@ class UVerifyFeePotTest extends ContractTest {
         assertFailure(evalResult);
     }
 
-    private static void logBudget(String testName, com.bloxbean.cardano.julc.vm.EvalResult result) {
+    private static void logBudget(String testName, org.julclang.vm.EvalResult result) {
         var budget = result.budgetConsumed();
         System.out.println("[" + testName + "] CPU: " + budget.cpuSteps() + ", Mem: " + budget.memoryUnits());
         System.out.println("[" + testName + "] Traces: " + result.traces());
         System.out.println("[" + testName + "] Success: " + result.isSuccess());
-        if (result instanceof com.bloxbean.cardano.julc.vm.EvalResult.Failure f) {
+        if (result instanceof org.julclang.vm.EvalResult.Failure f) {
             System.out.println("[" + testName + "] Error: " + f.error());
         }
     }

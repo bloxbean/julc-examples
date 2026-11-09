@@ -1,6 +1,6 @@
 package com.example.mpf;
 
-import com.bloxbean.cardano.julc.stdlib.annotation.OnchainLibrary;
+import org.julclang.stdlib.annotation.OnchainLibrary;
 // Explicit import for Plutus library resolver (same-package, but needed for transitive discovery)
 import com.example.mpf.Neighbor;
 

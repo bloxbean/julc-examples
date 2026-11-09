@@ -44,3 +44,6 @@ bin/
 /.claude/
 /.idea/
 /.jqwik-database
+
+### Demo run logs ###
+logs/

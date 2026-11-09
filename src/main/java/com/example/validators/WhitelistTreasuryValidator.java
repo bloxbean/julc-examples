@@ -1,11 +1,11 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.stdlib.annotation.SpendingValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.core.types.JulcList;
+import org.julclang.stdlib.annotation.SpendingValidator;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.lib.ContextsLib;
+import org.julclang.ledger.*;
+import org.julclang.core.types.JulcList;
 
 /**
  * Whitelist Treasury Validator — a multi-signature treasury with configurable threshold.

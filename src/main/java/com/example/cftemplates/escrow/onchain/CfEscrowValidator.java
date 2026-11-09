@@ -1,16 +1,16 @@
 package com.example.cftemplates.escrow.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
-import com.bloxbean.cardano.julc.stdlib.lib.AddressLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
-import com.bloxbean.cardano.julc.stdlib.lib.OutputLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.MultiValidator;
+import org.julclang.stdlib.annotation.Purpose;
+import org.julclang.stdlib.lib.AddressLib;
+import org.julclang.stdlib.lib.ContextsLib;
+import org.julclang.stdlib.lib.OutputLib;
+import org.julclang.stdlib.lib.ValuesLib;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -71,8 +71,8 @@ public class CfEscrowValidator {
         ActiveEscrow activeDatum = PlutusData.cast(outputDatumData, ActiveEscrow.class);
 
         // Verify datum fields preserved correctly
-        boolean initiatorCorrect = activeDatum.initiator().equals(initDatum.initiator());
-        boolean recipientCorrect = activeDatum.recipient().equals(rd.recipient());
+        boolean initiatorCorrect = Builtins.equalsByteString(activeDatum.initiator(), initDatum.initiator());
+        boolean recipientCorrect = Builtins.equalsByteString(activeDatum.recipient(), rd.recipient());
         boolean initiatorAmtCorrect = activeDatum.initiatorAmount().compareTo(initDatum.initiatorAmount()) == 0;
         boolean recipientAmtCorrect = activeDatum.recipientAmount().compareTo(rd.recipientAmount()) == 0;
 
@@ -137,7 +137,7 @@ public class CfEscrowValidator {
         boolean found = false;
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (credHash.equals(pkh)) {
+            if (Builtins.equalsByteString(credHash, pkh)) {
                 BigInteger lovelace = ValuesLib.lovelaceOf(output.value());
                 if (lovelace.compareTo(amount) >= 0) {
                     found = true;

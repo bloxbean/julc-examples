@@ -1,14 +1,14 @@
 package com.example.cftemplates.pricebet.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.core.types.JulcMap;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
-import com.bloxbean.cardano.julc.stdlib.lib.*;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.core.types.JulcMap;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.MultiValidator;
+import org.julclang.stdlib.annotation.Purpose;
+import org.julclang.stdlib.lib.*;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -55,7 +55,7 @@ public class CfPriceBetValidator {
 
     static boolean handleJoin(TxInfo txInfo, TxOut ownInput, PriceBetDatum datum) {
         // Must not have a player yet
-        if (!datum.player().equals(Builtins.emptyByteString())) return false;
+        if (!Builtins.equalsByteString(datum.player(), Builtins.emptyByteString())) return false;
 
         Address scriptAddr = ownInput.address();
 
@@ -65,11 +65,11 @@ public class CfPriceBetValidator {
         PriceBetDatum newDatum = (PriceBetDatum)(Object) outDatumData;
 
         // Player must be set and must sign
-        boolean hasPlayer = !newDatum.player().equals(Builtins.emptyByteString());
+        boolean hasPlayer = !Builtins.equalsByteString(newDatum.player(), Builtins.emptyByteString());
         boolean playerSigned = ContextsLib.signedBy(txInfo, newDatum.player());
         // Other fields must not change
-        boolean ownerSame = newDatum.owner().equals(datum.owner());
-        boolean oracleSame = newDatum.oracleVkh().equals(datum.oracleVkh());
+        boolean ownerSame = Builtins.equalsByteString(newDatum.owner(), datum.owner());
+        boolean oracleSame = Builtins.equalsByteString(newDatum.oracleVkh(), datum.oracleVkh());
         boolean rateSame = newDatum.targetRate().compareTo(datum.targetRate()) == 0;
         boolean deadlineSame = newDatum.deadline().compareTo(datum.deadline()) == 0;
         boolean amountSame = newDatum.betAmount().compareTo(datum.betAmount()) == 0;
@@ -87,7 +87,7 @@ public class CfPriceBetValidator {
     static boolean handleWin(TxInfo txInfo, TxOut ownInput, PriceBetDatum datum) {
         // Must have a player
         byte[] player = datum.player();
-        if (player.equals(Builtins.emptyByteString())) return false;
+        if (Builtins.equalsByteString(player, Builtins.emptyByteString())) return false;
 
         boolean playerSigned = ContextsLib.signedBy(txInfo, player);
 
@@ -134,7 +134,7 @@ public class CfPriceBetValidator {
         for (var refIn : refInputs) {
             if (AddressLib.isScriptAddress(refIn.resolved().address())) {
                 byte[] credHash = AddressLib.credentialHash(refIn.resolved().address());
-                if (credHash.equals(oracleVkh)) {
+                if (Builtins.equalsByteString(credHash, oracleVkh)) {
                     result = OutputLib.getInlineDatum(refIn.resolved());
                     break;
                 }
@@ -160,7 +160,7 @@ public class CfPriceBetValidator {
         boolean found = false;
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (credHash.equals(pkh)) {
+            if (Builtins.equalsByteString(credHash, pkh)) {
                 BigInteger lovelace = ValuesLib.lovelaceOf(output.value());
                 if (lovelace.compareTo(amount) >= 0) {
                     found = true;

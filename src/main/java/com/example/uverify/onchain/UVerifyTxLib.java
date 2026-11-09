@@ -1,14 +1,14 @@
 package com.example.uverify.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.stdlib.annotation.OnchainLibrary;
-import com.bloxbean.cardano.julc.stdlib.lib.AddressLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ByteStringLib;
-import com.bloxbean.cardano.julc.stdlib.lib.CryptoLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.annotation.OnchainLibrary;
+import org.julclang.stdlib.lib.AddressLib;
+import org.julclang.stdlib.lib.ByteStringLib;
+import org.julclang.stdlib.lib.CryptoLib;
+import org.julclang.stdlib.lib.ValuesLib;
 
 import java.math.BigInteger;
 
@@ -25,7 +25,7 @@ public class UVerifyTxLib {
 
     static boolean oneOfKeysSigned(JulcList<PubKeyHash> signatories, JulcList<byte[]> keys) {
         return signatories.any(sig ->
-                keys.any(k -> sig.hash().equals(k)));
+                keys.any(k -> Builtins.equalsByteString(sig.hash(), k)));
     }
 
     // === Input lookup ===
@@ -47,7 +47,7 @@ public class UVerifyTxLib {
         for (var input : inputs) {
             byte[] sh = AddressLib.credentialHash(input.resolved().address());
             if (sh.length > 0 && AddressLib.isScriptAddress(input.resolved().address())
-                    && sh.equals(scriptHash)) {
+                    && Builtins.equalsByteString(sh, scriptHash)) {
                 found = true;
                 break;
             }
@@ -95,7 +95,7 @@ public class UVerifyTxLib {
         for (var output : outputs) {
             byte[] pkh = AddressLib.credentialHash(output.address());
             if (pkh.length > 0 && AddressLib.isPubKeyAddress(output.address())
-                    && pkh.equals(recv)) {
+                    && Builtins.equalsByteString(pkh, recv)) {
                 BigInteger lovelace = ValuesLib.lovelaceOf(output.value());
                 if (lovelace.compareTo(minFee) >= 0) {
                     paid = true;
@@ -126,7 +126,7 @@ public class UVerifyTxLib {
             BigInteger idx = input.outRef().index();
             byte[] idxBytes = ByteStringLib.integerToByteString(false, 2, idx.longValue());
             byte[] computed = CryptoLib.sha2_256(ByteStringLib.append(txId, idxBytes));
-            if (computed.equals(expectedId)) {
+            if (Builtins.equalsByteString(computed, expectedId)) {
                 found = true;
                 break;
             }

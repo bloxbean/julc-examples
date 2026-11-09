@@ -1,10 +1,10 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.core.types.JulcMap;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.testkit.*;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.core.types.JulcMap;
+import org.julclang.ledger.*;
+import org.julclang.testkit.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -141,13 +141,13 @@ class EscrowValidatorTest extends ContractTest {
             var ref = TestDataBuilder.randomTxOutRef_typed();
             var address = TestDataBuilder.pubKeyAddress(new PubKeyHash(SELLER));
             var txOut = TestDataBuilder.txOut(address,
-                    com.bloxbean.cardano.julc.ledger.Value.lovelace(PRICE));
+                    org.julclang.ledger.Value.lovelace(PRICE));
             var ctx = spendingContext(ref, datum)
                     .redeemer(redeemer)
                     .signer(SELLER)
                     .signer(BUYER)
                     .output(txOut)
-                    .validRange(com.bloxbean.cardano.julc.ledger.Interval.always())
+                    .validRange(org.julclang.ledger.Interval.always())
                     .buildPlutusData();
 
             var result = evaluate(program, ctx);
@@ -167,7 +167,7 @@ class EscrowValidatorTest extends ContractTest {
             var ctx = spendingContext(ref, datum)
                     .redeemer(redeemer)
                     .signer(SELLER)
-                    .validRange(com.bloxbean.cardano.julc.ledger.Interval.after(BigInteger.valueOf(500)))
+                    .validRange(org.julclang.ledger.Interval.after(BigInteger.valueOf(500)))
                     .buildPlutusData();
 
             var result = evaluate(program, ctx);
@@ -185,13 +185,13 @@ class EscrowValidatorTest extends ContractTest {
             var ref = TestDataBuilder.randomTxOutRef_typed();
             var address = TestDataBuilder.pubKeyAddress(new PubKeyHash(SELLER));
             var txOut = TestDataBuilder.txOut(address,
-                    com.bloxbean.cardano.julc.ledger.Value.lovelace(PRICE));
+                    org.julclang.ledger.Value.lovelace(PRICE));
             var ctx = spendingContext(ref, datum)
                     .redeemer(redeemer)
                     .signer(SELLER)
                     .signer(BUYER)
                     .output(txOut)
-                    .validRange(com.bloxbean.cardano.julc.ledger.Interval.always())
+                    .validRange(org.julclang.ledger.Interval.always())
                     .buildPlutusData();
 
             var result = evaluate(program, ctx);
@@ -200,7 +200,7 @@ class EscrowValidatorTest extends ContractTest {
         }
     }
 
-    private static void logBudget(String testName, com.bloxbean.cardano.julc.vm.EvalResult result) {
+    private static void logBudget(String testName, org.julclang.vm.EvalResult result) {
         var budget = result.budgetConsumed();
         System.out.println("[" + testName + "] CPU: " + budget.cpuSteps() + ", Mem: " + budget.memoryUnits());
         System.out.println("[" + testName + "] Traces: " + result.traces());

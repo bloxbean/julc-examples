@@ -13,8 +13,8 @@ import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.client.crypto.Blake2bUtil;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
-import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
-import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
+import org.julclang.clientlib.JulcScriptLoader;
+import org.julclang.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.lottery.onchain.CfLotteryValidator;
 import com.example.offchain.YaciHelper;
 

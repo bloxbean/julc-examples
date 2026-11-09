@@ -1,15 +1,15 @@
 package com.example.cftemplates.lottery.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Param;
-import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
-import com.bloxbean.cardano.julc.stdlib.lib.*;
-import com.bloxbean.cardano.julc.stdlib.lib.ByteStringLib;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.MultiValidator;
+import org.julclang.stdlib.annotation.Param;
+import org.julclang.stdlib.annotation.Purpose;
+import org.julclang.stdlib.lib.*;
+import org.julclang.stdlib.lib.ByteStringLib;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -103,8 +103,8 @@ public class CfLotteryValidator {
         boolean p2Signed = ContextsLib.signedBy(txInfo, ld.player2());
 
         // Commitments must be non-empty
-        boolean c1Valid = !ld.commit1().equals(Builtins.emptyByteString());
-        boolean c2Valid = !ld.commit2().equals(Builtins.emptyByteString());
+        boolean c1Valid = !Builtins.equalsByteString(ld.commit1(), Builtins.emptyByteString());
+        boolean c2Valid = !Builtins.equalsByteString(ld.commit2(), Builtins.emptyByteString());
 
         return oneMinted && p1Signed && p2Signed && c1Valid && c2Valid;
     }
@@ -122,11 +122,11 @@ public class CfLotteryValidator {
         // Player1 must sign
         boolean p1Signed = ContextsLib.signedBy(txInfo, ld.player1());
         // n1 must be empty (not yet revealed)
-        boolean n1Empty = ld.n1().equals(Builtins.emptyByteString());
+        boolean n1Empty = Builtins.equalsByteString(ld.n1(), Builtins.emptyByteString());
         // Revealed value must be non-empty
-        boolean revealNonEmpty = !revealed.equals(Builtins.emptyByteString());
+        boolean revealNonEmpty = !Builtins.equalsByteString(revealed, Builtins.emptyByteString());
         // blake2b(revealed) must match commit1
-        boolean commitMatch = CryptoLib.blake2b_256(revealed).equals(ld.commit1());
+        boolean commitMatch = Builtins.equalsByteString(CryptoLib.blake2b_256(revealed), ld.commit1());
         // Script output must continue (not consumed)
         boolean continues = !isScriptConsumed(txInfo.outputs(), ownInput.address());
 
@@ -137,13 +137,13 @@ public class CfLotteryValidator {
         // Player2 must sign
         boolean p2Signed = ContextsLib.signedBy(txInfo, ld.player2());
         // n1 must already be revealed
-        boolean n1Revealed = !ld.n1().equals(Builtins.emptyByteString());
+        boolean n1Revealed = !Builtins.equalsByteString(ld.n1(), Builtins.emptyByteString());
         // n2 must be empty (not yet revealed)
-        boolean n2Empty = ld.n2().equals(Builtins.emptyByteString());
+        boolean n2Empty = Builtins.equalsByteString(ld.n2(), Builtins.emptyByteString());
         // Revealed value must be non-empty
-        boolean revealNonEmpty = !revealed.equals(Builtins.emptyByteString());
+        boolean revealNonEmpty = !Builtins.equalsByteString(revealed, Builtins.emptyByteString());
         // blake2b(revealed) must match commit2
-        boolean commitMatch = CryptoLib.blake2b_256(revealed).equals(ld.commit2());
+        boolean commitMatch = Builtins.equalsByteString(CryptoLib.blake2b_256(revealed), ld.commit2());
         // Script output must continue
         boolean continues = !isScriptConsumed(txInfo.outputs(), ownInput.address());
 
@@ -152,7 +152,7 @@ public class CfLotteryValidator {
 
     static boolean handleTimeout1(TxInfo txInfo, TxOut ownInput, LotteryDatum ld, byte[] ownHash) {
         // n1 not revealed (player1 timed out)
-        boolean n1Empty = ld.n1().equals(Builtins.emptyByteString());
+        boolean n1Empty = Builtins.equalsByteString(ld.n1(), Builtins.emptyByteString());
         // After end_reveal deadline
         BigInteger lowerBound = IntervalLib.finiteLowerBound(txInfo.validRange());
         boolean afterDeadline = lowerBound.compareTo(ld.endReveal()) >= 0;
@@ -169,8 +169,8 @@ public class CfLotteryValidator {
 
     static boolean handleTimeout2(TxInfo txInfo, TxOut ownInput, LotteryDatum ld, byte[] ownHash) {
         // n1 revealed but n2 not (player2 timed out)
-        boolean n1Revealed = !ld.n1().equals(Builtins.emptyByteString());
-        boolean n2Empty = ld.n2().equals(Builtins.emptyByteString());
+        boolean n1Revealed = !Builtins.equalsByteString(ld.n1(), Builtins.emptyByteString());
+        boolean n2Empty = Builtins.equalsByteString(ld.n2(), Builtins.emptyByteString());
         // After end_reveal + delta
         BigInteger timeoutDeadline = ld.endReveal().add(ld.delta());
         BigInteger lowerBound = IntervalLib.finiteLowerBound(txInfo.validRange());
@@ -188,8 +188,8 @@ public class CfLotteryValidator {
 
     static boolean handleSettle(TxInfo txInfo, TxOut ownInput, LotteryDatum ld, byte[] ownHash) {
         // Both must be revealed
-        boolean n1Revealed = !ld.n1().equals(Builtins.emptyByteString());
-        boolean n2Revealed = !ld.n2().equals(Builtins.emptyByteString());
+        boolean n1Revealed = !Builtins.equalsByteString(ld.n1(), Builtins.emptyByteString());
+        boolean n2Revealed = !Builtins.equalsByteString(ld.n2(), Builtins.emptyByteString());
         if (!n1Revealed || !n2Revealed) return false;
 
         // Determine winner by parity: (v1 + v2) % 2 == 1 → player1 wins

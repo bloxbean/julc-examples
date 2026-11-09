@@ -1,18 +1,20 @@
 plugins {
     id 'java'
     id 'application'
+    id 'org.julclang.julc' version '0.1.0-pre21-71b3a73-SNAPSHOT'
 }
 
 group = 'com.example'
 version = '0.1.0'
 
 ext {
-    julcVersion = '0.1.0-pre12'
-    cardanoClientLibVersion = '0.8.0-pre4'
+    julcVersion = '0.1.0-pre21-71b3a73-SNAPSHOT'
+    cardanoClientLibVersion = '0.8.0-pre7'
 }
 
 repositories {
     mavenLocal()
+    maven { url = uri("https://repo.bloxbean.org/maven/snapshots"); content { snapshotsOnly() } }
     mavenCentral()
     maven {
         url = uri("https://central.sonatype.com/repository/maven-snapshots")
@@ -45,16 +47,18 @@ sourceSets.test.java {
 dependencies {
     // Stdlib — annotations (@Validator, @MintingPolicy, @Entrypoint),
     // stdlib libs (ContextsLib, ListsLib, etc.)
-    implementation "com.bloxbean.cardano:julc-stdlib:${julcVersion}"
+    implementation "org.julclang:julc-stdlib:${julcVersion}"
 
-    implementation "com.bloxbean.cardano:julc-cardano-client-lib:${julcVersion}"
+    implementation "org.julclang:julc-cardano-client-lib:${julcVersion}"
+    // BLS12-381 operations (blst) — used off-chain by the BLS demo to build signatures
+    implementation "org.julclang:julc-bls:${julcVersion}"
     // Annotation processor — compiles @Validator/@MintingPolicy classes to UPLC during javac
-    annotationProcessor "com.bloxbean.cardano:julc-annotation-processor:${julcVersion}"
+    annotationProcessor "org.julclang:julc-annotation-processor:${julcVersion}"
 
     // Runtime — JulcScriptLoader for loading compiled scripts at runtime
-    implementation "com.bloxbean.cardano:julc-annotation-processor:${julcVersion}"
+    implementation "org.julclang:julc-annotation-processor:${julcVersion}"
 
-    runtimeOnly "com.bloxbean.cardano:julc-vm-java:${julcVersion}"
+    runtimeOnly "org.julclang:julc-vm-java:${julcVersion}"
 
     // cardano-client-lib — off-chain transaction building
     implementation "com.bloxbean.cardano:cardano-client-lib:${cardanoClientLibVersion}"
@@ -63,12 +67,13 @@ dependencies {
 
     // Test dependencies
     testImplementation 'org.bouncycastle:bcprov-jdk18on:1.83'
-    testImplementation "com.bloxbean.cardano:julc-testkit:${julcVersion}"
-    testImplementation "com.bloxbean.cardano:julc-testkit-jqwik:${julcVersion}"
-    testImplementation "com.bloxbean.cardano:julc-compiler:${julcVersion}"
-    testImplementation "com.bloxbean.cardano:julc-stdlib:${julcVersion}"
-    testRuntimeOnly "com.bloxbean.cardano:julc-vm-java:${julcVersion}"
-    testImplementation "com.bloxbean.cardano:julc-vm-truffle:${julcVersion}"  // For JulcDebugger API
+    testImplementation "org.julclang:julc-testkit:${julcVersion}"
+    testImplementation "org.julclang:julc-testkit-jqwik:${julcVersion}"
+    testImplementation "org.julclang:julc-compiler:${julcVersion}"
+    testImplementation "org.julclang:julc-stdlib:${julcVersion}"
+    testRuntimeOnly "org.julclang:julc-vm-java:${julcVersion}"
+//    testImplementation "org.julclang:julc-vm-truffle:${julcVersion}"  // For JulcDebugger API
+//    testImplementation "org.julclang:julc-vm-scalus:${julcVersion}"   // Scalus VM backend — cross-VM budget comparison
     testImplementation 'net.jqwik:jqwik:1.9.2'
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -84,6 +89,21 @@ test {
 
 application {
     mainClass = project.findProperty('mainClass') ?: 'com.example.offchain.VestingDemo'
+}
+
+// Script evaluation mode for the demos:
+//   -Pevaluator=local    (default) in-process JulcTransactionEvaluator
+//   -Pevaluator=backend            Yaci Store's /utils/txs/evaluate endpoint
+// JULC_EVALUATOR in the environment works too.
+tasks.named('run', JavaExec) {
+    def evaluator = project.findProperty('evaluator')
+            ?: System.getProperty('julc.evaluator')
+            ?: System.getenv('JULC_EVALUATOR')
+    if (evaluator) {
+        systemProperty 'julc.evaluator', evaluator
+    }
+    // blst is loaded through the FFM API
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
 //tasks.named('compileJava') {

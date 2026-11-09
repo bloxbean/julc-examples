@@ -9,8 +9,8 @@ import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.util.HexUtil;
-import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
-import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
+import org.julclang.clientlib.JulcScriptLoader;
+import org.julclang.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.auction.onchain.CfAuctionValidator;
 import com.example.offchain.YaciHelper;
 
@@ -81,7 +81,6 @@ public class AuctionDemo {
                 .collateralPayer(seller.baseAddress())
                 .withRequiredSigners(sellerPkh)
                 .validTo(currentSlot + 10) // before expiration
-                .ignoreScriptCostEvaluationError(true)
                 .withTxEvaluator(YaciHelper.julcEvaluator(backend))
                 .complete();
 

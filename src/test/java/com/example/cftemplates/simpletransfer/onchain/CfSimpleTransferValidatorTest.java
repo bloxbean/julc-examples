@@ -1,7 +1,7 @@
 package com.example.cftemplates.simpletransfer.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.testkit.ContractTest;
+import org.julclang.core.PlutusData;
+import org.julclang.testkit.ContractTest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ class CfSimpleTransferValidatorTest extends ContractTest {
             var datum = PlutusData.constr(1); // None (Optional empty)
             var redeemer = PlutusData.constr(0);
 
-            var ref = com.bloxbean.cardano.julc.testkit.TestDataBuilder.randomTxOutRef_typed();
+            var ref = org.julclang.testkit.TestDataBuilder.randomTxOutRef_typed();
             var ctx = spendingContext(ref, datum)
                     .redeemer(redeemer)
                     .signer(RECEIVER)
@@ -54,7 +54,7 @@ class CfSimpleTransferValidatorTest extends ContractTest {
             var datum = PlutusData.constr(1); // None
             var redeemer = PlutusData.constr(0);
 
-            var ref = com.bloxbean.cardano.julc.testkit.TestDataBuilder.randomTxOutRef_typed();
+            var ref = org.julclang.testkit.TestDataBuilder.randomTxOutRef_typed();
             var ctx = spendingContext(ref, datum)
                     .redeemer(redeemer)
                     .signer(OTHER)
@@ -74,7 +74,7 @@ class CfSimpleTransferValidatorTest extends ContractTest {
             var datum = PlutusData.constr(1); // None
             var redeemer = PlutusData.constr(0);
 
-            var ref = com.bloxbean.cardano.julc.testkit.TestDataBuilder.randomTxOutRef_typed();
+            var ref = org.julclang.testkit.TestDataBuilder.randomTxOutRef_typed();
             var ctx = spendingContext(ref, datum)
                     .redeemer(redeemer)
                     .buildPlutusData();
@@ -84,7 +84,7 @@ class CfSimpleTransferValidatorTest extends ContractTest {
         }
     }
 
-    private static void logBudget(String testName, com.bloxbean.cardano.julc.vm.EvalResult result) {
+    private static void logBudget(String testName, org.julclang.vm.EvalResult result) {
         var budget = result.budgetConsumed();
         System.out.println("[" + testName + "] CPU: " + budget.cpuSteps() + ", Mem: " + budget.memoryUnits());
     }

@@ -1,19 +1,20 @@
 plugins {
     id 'java'
     id 'application'
-    id 'org.julclang.julc' version '0.1.0-pre20'
+    id 'org.julclang.julc' version '0.1.0-pre21-71b3a73-SNAPSHOT'
 }
 
 group = 'com.example'
 version = '0.1.0'
 
 ext {
-    julcVersion = '0.1.0-pre20'
+    julcVersion = '0.1.0-pre21-71b3a73-SNAPSHOT'
     cardanoClientLibVersion = '0.8.0-pre7'
 }
 
 repositories {
     mavenLocal()
+    maven { url = uri("https://repo.bloxbean.org/maven/snapshots"); content { snapshotsOnly() } }
     mavenCentral()
     maven {
         url = uri("https://central.sonatype.com/repository/maven-snapshots")

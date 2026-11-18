@@ -1,11 +1,11 @@
 package com.example.linkedlist.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.Program;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.testkit.ContractTest;
-import com.bloxbean.cardano.julc.testkit.TestDataBuilder;
-import com.bloxbean.cardano.julc.vm.EvalResult;
+import org.julclang.core.PlutusData;
+import org.julclang.core.Program;
+import org.julclang.ledger.*;
+import org.julclang.testkit.ContractTest;
+import org.julclang.testkit.TestDataBuilder;
+import org.julclang.vm.EvalResult;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

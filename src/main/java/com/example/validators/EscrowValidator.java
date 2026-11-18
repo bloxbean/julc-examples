@@ -1,11 +1,10 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.stdlib.annotation.SpendingValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Validator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.ledger.ScriptContext;
-import com.bloxbean.cardano.julc.ledger.TxInfo;
-import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
+import org.julclang.stdlib.annotation.SpendingValidator;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.ledger.ScriptContext;
+import org.julclang.ledger.TxInfo;
+import org.julclang.stdlib.lib.ContextsLib;
 import com.example.util.ValidationUtils;
 
 import java.math.BigInteger;

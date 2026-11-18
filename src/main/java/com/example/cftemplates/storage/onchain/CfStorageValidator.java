@@ -1,14 +1,14 @@
 package com.example.cftemplates.storage.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Param;
-import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
-import com.bloxbean.cardano.julc.stdlib.lib.*;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.MultiValidator;
+import org.julclang.stdlib.annotation.Param;
+import org.julclang.stdlib.annotation.Purpose;
+import org.julclang.stdlib.lib.*;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -79,7 +79,7 @@ public class CfStorageValidator {
         for (var input : inputs) {
             byte[] txHash = (byte[])(Object) input.outRef().txId();
             BigInteger idx = input.outRef().index();
-            if (txHash.equals(seedTxHash) && idx.compareTo(seedIndex) == 0) {
+            if (Builtins.equalsByteString(txHash, seedTxHash) && idx.compareTo(seedIndex) == 0) {
                 found = true;
                 break;
             }
@@ -92,7 +92,7 @@ public class CfStorageValidator {
         boolean found = false;
         for (var output : outputs) {
             byte[] credHash = AddressLib.credentialHash(output.address());
-            if (credHash.equals(policyBytes)) {
+            if (Builtins.equalsByteString(credHash, policyBytes)) {
                 // Check output contains the NFT
                 BigInteger nftQty = ValuesLib.assetOf(output.value(), policyBytes, assetName);
                 if (nftQty.compareTo(BigInteger.ONE) == 0) {
@@ -100,9 +100,9 @@ public class CfStorageValidator {
                     PlutusData datumData = OutputLib.getInlineDatum(output);
                     RegistryDatum rd = (RegistryDatum)(Object) datumData;
                     // Datum must match redeemer
-                    boolean idMatch = rd.snapshotId().equals(redeemer.snapshotId());
+                    boolean idMatch = Builtins.equalsByteString(rd.snapshotId(), redeemer.snapshotId());
                     boolean typeMatch = Builtins.equalsData(rd.snapshotType(), redeemer.snapshotType());
-                    boolean hashMatch = rd.commitmentHash().equals(redeemer.commitmentHash());
+                    boolean hashMatch = Builtins.equalsByteString(rd.commitmentHash(), redeemer.commitmentHash());
                     // Validate: commitment hash = 32 bytes, snapshot ID non-empty
                     long hashLen = Builtins.lengthOfByteString(rd.commitmentHash());
                     boolean validHash = hashLen == 32;

@@ -1,11 +1,11 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.ledger.PubKeyHash;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.stdlib.lib.OutputLib;
-import com.bloxbean.cardano.julc.testkit.*;
+import org.julclang.core.PlutusData;
+import org.julclang.ledger.PubKeyHash;
+import org.julclang.ledger.*;
+import org.julclang.core.types.JulcList;
+import org.julclang.stdlib.lib.OutputLib;
+import org.julclang.testkit.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -200,11 +200,11 @@ class OutputCheckValidatorTest extends ContractTest {
             var ref = TestDataBuilder.randomTxOutRef_typed();
             var recipientAddr = TestDataBuilder.pubKeyAddress(new PubKeyHash(RECIPIENT_PKH));
             var txOut = TestDataBuilder.txOut(recipientAddr,
-                    com.bloxbean.cardano.julc.ledger.Value.lovelace(BigInteger.valueOf(10_000_000)));
+                    org.julclang.ledger.Value.lovelace(BigInteger.valueOf(10_000_000)));
             var ctx = spendingContext(ref, datum)
                     .redeemer(redeemer)
                     .output(txOut)
-                    .validRange(com.bloxbean.cardano.julc.ledger.Interval.always())
+                    .validRange(org.julclang.ledger.Interval.always())
                     .buildPlutusData();
 
             var result = evaluate(program, ctx);
@@ -222,11 +222,11 @@ class OutputCheckValidatorTest extends ContractTest {
             var ref = TestDataBuilder.randomTxOutRef_typed();
             var recipientAddr = TestDataBuilder.pubKeyAddress(new PubKeyHash(RECIPIENT_PKH));
             var txOut = TestDataBuilder.txOut(recipientAddr,
-                    com.bloxbean.cardano.julc.ledger.Value.lovelace(BigInteger.valueOf(3_000_000)));
+                    org.julclang.ledger.Value.lovelace(BigInteger.valueOf(3_000_000)));
             var ctx = spendingContext(ref, datum)
                     .redeemer(redeemer)
                     .output(txOut)
-                    .validRange(com.bloxbean.cardano.julc.ledger.Interval.always())
+                    .validRange(org.julclang.ledger.Interval.always())
                     .buildPlutusData();
 
             var result = evaluate(program, ctx);
@@ -245,18 +245,18 @@ class OutputCheckValidatorTest extends ContractTest {
             var recipientAddr = TestDataBuilder.pubKeyAddress(new PubKeyHash(RECIPIENT_PKH));
             var otherAddr = TestDataBuilder.pubKeyAddress(new PubKeyHash(OTHER_PKH));
             var txOut1 = TestDataBuilder.txOut(recipientAddr,
-                    com.bloxbean.cardano.julc.ledger.Value.lovelace(BigInteger.valueOf(5_000_000)));
+                    org.julclang.ledger.Value.lovelace(BigInteger.valueOf(5_000_000)));
             var txOut2 = TestDataBuilder.txOut(otherAddr,
-                    com.bloxbean.cardano.julc.ledger.Value.lovelace(BigInteger.valueOf(2_000_000)));
+                    org.julclang.ledger.Value.lovelace(BigInteger.valueOf(2_000_000)));
             var txOut3 = TestDataBuilder.txOut(recipientAddr,
-                    com.bloxbean.cardano.julc.ledger.Value.lovelace(BigInteger.valueOf(4_000_000)));
+                    org.julclang.ledger.Value.lovelace(BigInteger.valueOf(4_000_000)));
 
             var ctx = spendingContext(ref, datum)
                     .redeemer(redeemer)
                     .output(txOut1)
                     .output(txOut2)
                     .output(txOut3)
-                    .validRange(com.bloxbean.cardano.julc.ledger.Interval.always())
+                    .validRange(org.julclang.ledger.Interval.always())
                     .buildPlutusData();
 
             var result = evaluate(program, ctx);
@@ -265,7 +265,7 @@ class OutputCheckValidatorTest extends ContractTest {
         }
     }
 
-    private static void logBudget(String testName, com.bloxbean.cardano.julc.vm.EvalResult result) {
+    private static void logBudget(String testName, org.julclang.vm.EvalResult result) {
         var budget = result.budgetConsumed();
         System.out.println("[" + testName + "] CPU: " + budget.cpuSteps() + ", Mem: " + budget.memoryUnits());
         System.out.println("[" + testName + "] Traces: " + result.traces());

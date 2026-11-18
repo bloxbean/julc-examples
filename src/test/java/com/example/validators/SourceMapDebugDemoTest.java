@@ -1,12 +1,12 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.compiler.CompileResult;
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.source.SourceLocation;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.testkit.*;
-import com.bloxbean.cardano.julc.vm.EvalResult;
-import com.bloxbean.cardano.julc.vm.trace.ExecutionTraceEntry;
+import org.julclang.compiler.CompileResult;
+import org.julclang.core.PlutusData;
+import org.julclang.core.source.SourceLocation;
+import org.julclang.ledger.*;
+import org.julclang.testkit.*;
+import org.julclang.vm.EvalResult;
+import org.julclang.vm.trace.ExecutionTraceEntry;
 import com.example.util.SumTest;
 import com.example.util.ValidationUtils;
 import org.junit.jupiter.api.BeforeAll;

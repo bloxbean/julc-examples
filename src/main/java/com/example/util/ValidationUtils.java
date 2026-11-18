@@ -1,11 +1,11 @@
 package com.example.util;
 
-import com.bloxbean.cardano.julc.stdlib.annotation.OnchainLibrary;
-import com.bloxbean.cardano.julc.ledger.TxInfo;
-import com.bloxbean.cardano.julc.ledger.Value;
-import com.bloxbean.cardano.julc.ledger.PubKeyHash;
-import com.bloxbean.cardano.julc.stdlib.lib.IntervalLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
+import org.julclang.stdlib.annotation.OnchainLibrary;
+import org.julclang.ledger.TxInfo;
+import org.julclang.ledger.Value;
+import org.julclang.ledger.PubKeyHash;
+import org.julclang.stdlib.lib.IntervalLib;
+import org.julclang.stdlib.lib.ValuesLib;
 
 import java.math.BigInteger;
 

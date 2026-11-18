@@ -1,7 +1,7 @@
 package com.example.cftemplates.crowdfund;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.testkit.JulcEval;
+import org.julclang.core.PlutusData;
+import org.julclang.testkit.JulcEval;
 import com.example.cftemplates.crowdfund.onchain.CfCrowdfundValidator;
 import org.junit.jupiter.api.Test;
 

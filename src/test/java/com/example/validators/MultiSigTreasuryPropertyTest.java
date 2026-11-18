@@ -1,13 +1,13 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.Program;
-import com.bloxbean.cardano.julc.ledger.PubKeyHash;
-import com.bloxbean.cardano.julc.testkit.BudgetAssertions;
-import com.bloxbean.cardano.julc.testkit.ContractTest;
-import com.bloxbean.cardano.julc.testkit.TestDataBuilder;
-import com.bloxbean.cardano.julc.testkit.jqwik.BudgetCollector;
-import com.bloxbean.cardano.julc.testkit.jqwik.CardanoArbitraries;
+import org.julclang.core.PlutusData;
+import org.julclang.core.Program;
+import org.julclang.ledger.PubKeyHash;
+import org.julclang.testkit.BudgetAssertions;
+import org.julclang.testkit.ContractTest;
+import org.julclang.testkit.TestDataBuilder;
+import org.julclang.testkit.jqwik.BudgetCollector;
+import org.julclang.testkit.jqwik.CardanoArbitraries;
 import net.jqwik.api.*;
 import net.jqwik.api.lifecycle.AfterProperty;
 

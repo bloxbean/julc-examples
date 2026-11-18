@@ -1,17 +1,17 @@
 package com.example.cftemplates.identity.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.stdlib.annotation.MultiValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Purpose;
-import com.bloxbean.cardano.julc.stdlib.lib.AddressLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ContextsLib;
-import com.bloxbean.cardano.julc.stdlib.lib.IntervalLib;
-import com.bloxbean.cardano.julc.stdlib.lib.OutputLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.stdlib.annotation.MultiValidator;
+import org.julclang.stdlib.annotation.Purpose;
+import org.julclang.stdlib.lib.AddressLib;
+import org.julclang.stdlib.lib.ContextsLib;
+import org.julclang.stdlib.lib.IntervalLib;
+import org.julclang.stdlib.lib.OutputLib;
+import org.julclang.stdlib.lib.ValuesLib;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -66,17 +66,17 @@ public class CfIdentityValidator {
         if (inputLovelace.compareTo(outputLovelace) != 0) return false;
 
         return switch (redeemer) {
-            case TransferOwner t -> t.newOwner().equals(newState.owner())
+            case TransferOwner t -> Builtins.equalsByteString(t.newOwner(), newState.owner())
                     && delegatesEqual(delegates, newState.delegates());
-            case AddDelegate a -> owner.equals(newState.owner())
+            case AddDelegate a -> Builtins.equalsByteString(owner, newState.owner())
                     && !hasDelegate(delegates, a.delegate())
                     && hasDelegate(newState.delegates(), a.delegate())
-                    && !a.delegate().equals(owner)
+                    && !Builtins.equalsByteString(a.delegate(), owner)
                     // Prevent adding already-expired delegates (matches Aiken's valid_before check)
                     && IntervalLib.finiteUpperBound(txInfo.validRange()).compareTo(a.expires()) <= 0
                     // Ensure exactly 1 delegate was added
                     && newState.delegates().size() == delegates.size() + 1;
-            case RemoveDelegate r -> owner.equals(newState.owner())
+            case RemoveDelegate r -> Builtins.equalsByteString(owner, newState.owner())
                     && hasDelegate(delegates, r.delegate())
                     && !hasDelegate(newState.delegates(), r.delegate())
                     // Ensure exactly 1 delegate was removed
@@ -85,7 +85,7 @@ public class CfIdentityValidator {
     }
 
     static boolean hasDelegate(JulcList<Delegate> delegates, byte[] key) {
-        return delegates.any(d -> d.key().equals(key));
+        return delegates.any(d -> Builtins.equalsByteString(d.key(), key));
     }
 
     static boolean delegatesEqual(JulcList<Delegate> a, JulcList<Delegate> b) {

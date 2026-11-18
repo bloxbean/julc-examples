@@ -114,7 +114,9 @@ class HtlcIntegrationTest {
                 .withSigner(SignerProviders.signerFrom(claimer))
                 .feePayer(claimer.baseAddress())
                 .collateralPayer(claimer.baseAddress())
-                .validTo(currentSlot + 200)
+                // Keep the upper bound inside the node's slot-to-time horizon: on DevKit's short epochs a
+                // bound 200 slots ahead is past it, and evaluation fails with PastHorizon before the script runs.
+                .validTo(currentSlot + 10)
                 .complete();
 
         assertTrue(result.isSuccessful(), "Unlock tx should succeed: " + result);

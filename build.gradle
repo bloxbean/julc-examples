@@ -1,14 +1,14 @@
 plugins {
     id 'java'
     id 'application'
-    id 'org.julclang.julc' version '0.1.0-pre21-71b3a73-SNAPSHOT'
+    id 'org.julclang.julc' version '0.1.0-pre21'
 }
 
 group = 'com.example'
 version = '0.1.0'
 
 ext {
-    julcVersion = '0.1.0-pre21-71b3a73-SNAPSHOT'
+    julcVersion = '0.1.0-pre21'
     cardanoClientLibVersion = '0.8.0-pre8'
 }
 

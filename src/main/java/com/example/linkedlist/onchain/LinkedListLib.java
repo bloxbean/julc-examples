@@ -1,12 +1,12 @@
 package com.example.linkedlist.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.stdlib.annotation.OnchainLibrary;
-import com.bloxbean.cardano.julc.stdlib.lib.ByteStringLib;
-import com.bloxbean.cardano.julc.stdlib.lib.OutputLib;
-import com.bloxbean.cardano.julc.stdlib.lib.ValuesLib;
+import org.julclang.core.PlutusData;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.stdlib.annotation.OnchainLibrary;
+import org.julclang.stdlib.lib.ByteStringLib;
+import org.julclang.stdlib.lib.OutputLib;
+import org.julclang.stdlib.lib.ValuesLib;
 
 import java.math.BigInteger;
 
@@ -32,7 +32,7 @@ public class LinkedListLib {
     }
 
     static boolean isRootToken(byte[] tokenName, byte[] rootKey) {
-        return tokenName.equals(rootKey);
+        return Builtins.equalsByteString(tokenName, rootKey);
     }
 
     static boolean requireListTokensMintedOrBurned(Value mint, byte[] policyId) {
@@ -46,7 +46,7 @@ public class LinkedListLib {
         boolean atScript = Builtins.equalsData(rootOutput.address(), scriptAddr);
 
         ListElement datum = PlutusData.cast(OutputLib.getInlineDatum(rootOutput), ListElement.class);
-        boolean emptyNext = datum.nextKey().equals(Builtins.emptyByteString());
+        boolean emptyNext = Builtins.equalsByteString(datum.nextKey(), Builtins.emptyByteString());
 
         BigInteger rootQty = ValuesLib.assetOf(mint, policyId, rootKey);
         boolean rootMinted = rootQty.compareTo(BigInteger.ONE) == 0;
@@ -60,7 +60,7 @@ public class LinkedListLib {
     static boolean validateDeinit(TxOut rootInputResolved, Value mint, byte[] policyId,
                                   byte[] rootKey) {
         ListElement datum = PlutusData.cast(OutputLib.getInlineDatum(rootInputResolved), ListElement.class);
-        boolean emptyNext = datum.nextKey().equals(Builtins.emptyByteString());
+        boolean emptyNext = Builtins.equalsByteString(datum.nextKey(), Builtins.emptyByteString());
 
         BigInteger rootQty = ValuesLib.assetOf(mint, policyId, rootKey);
         boolean rootBurned = rootQty.compareTo(BigInteger.ONE.negate()) == 0;
@@ -86,7 +86,7 @@ public class LinkedListLib {
 
         // Token name must be prefix + key
         byte[] expectedName = buildTokenName(prefix, newKey);
-        boolean nameCorrect = newTokenName.equals(expectedName);
+        boolean nameCorrect = Builtins.equalsByteString(newTokenName, expectedName);
 
         // Anchor NFT preserved in continuing output
         BigInteger contQty = ValuesLib.assetOf(contAnchorOutput.value(), policyId, anchorTokenName);
@@ -105,14 +105,14 @@ public class LinkedListLib {
         boolean dataUnchanged = Builtins.equalsData(anchorOld.userData(), contAnchor.userData());
 
         // Continuing anchor's nextKey = new node's key
-        boolean contNextOk = contAnchor.nextKey().equals(newKey);
+        boolean contNextOk = Builtins.equalsByteString(contAnchor.nextKey(), newKey);
 
         // New element's nextKey = anchor's old nextKey
-        boolean newNextOk = newElement.nextKey().equals(anchorOld.nextKey());
+        boolean newNextOk = Builtins.equalsByteString(newElement.nextKey(), anchorOld.nextKey());
 
         // Ordering: anchorKey < newKey (skip if root), newKey < oldNextKey (skip if end)
         byte[] oldNextKey = anchorOld.nextKey();
-        boolean insertAtEnd = oldNextKey.equals(Builtins.emptyByteString());
+        boolean insertAtEnd = Builtins.equalsByteString(oldNextKey, Builtins.emptyByteString());
         byte[] anchorKey = extractNodeKey(anchorTokenName, prefixLen);
         boolean orderOk = (anchorIsRoot || ByteStringLib.lessThan(anchorKey, newKey))
                 && (insertAtEnd || ByteStringLib.lessThan(newKey, oldNextKey));
@@ -142,7 +142,7 @@ public class LinkedListLib {
         ListElement contDatum = PlutusData.cast(OutputLib.getInlineDatum(contAnchorOutput), ListElement.class);
 
         // Anchor must link to the removing node
-        boolean anchorLinksToRemoving = anchorDatum.nextKey().equals(removingKey);
+        boolean anchorLinksToRemoving = Builtins.equalsByteString(anchorDatum.nextKey(), removingKey);
 
         // Anchor NFT preserved in continuing output
         BigInteger contQty = ValuesLib.assetOf(contAnchorOutput.value(), policyId, anchorTokenName);
@@ -155,7 +155,7 @@ public class LinkedListLib {
         boolean dataUnchanged = Builtins.equalsData(anchorDatum.userData(), contDatum.userData());
 
         // Continuing anchor's nextKey = removing node's nextKey (skip over)
-        boolean skipCorrect = contDatum.nextKey().equals(removingDatum.nextKey());
+        boolean skipCorrect = Builtins.equalsByteString(contDatum.nextKey(), removingDatum.nextKey());
 
         // Removing node's NFT burned
         BigInteger burnQty = ValuesLib.assetOf(mint, policyId, removingTokenName);

@@ -1,9 +1,9 @@
 package com.example.uverify.onchain;
 
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.Builtins;
-import com.bloxbean.cardano.julc.testkit.*;
+import org.julclang.core.PlutusData;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.Builtins;
+import org.julclang.testkit.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -57,7 +57,7 @@ class UVerifyProxyTest extends ContractTest {
     static byte[] computeStateTokenName() {
         byte[] idxBytes = uplcIntegerToByteString(UTXO_REF_IDX);
         byte[] combined = Builtins.appendByteString(UTXO_REF_TX_ID, idxBytes);
-        return com.bloxbean.cardano.julc.stdlib.lib.CryptoLib.sha2_256(combined);
+        return org.julclang.stdlib.lib.CryptoLib.sha2_256(combined);
     }
 
     // Replicate UPLC integerToByteString(true, 0, n) behavior: zero produces empty bytestring
@@ -296,15 +296,15 @@ class UVerifyProxyTest extends ContractTest {
         assertSuccess(evalResult);
     }
 
-    private static void logBudget(String testName, com.bloxbean.cardano.julc.vm.EvalResult result) {
+    private static void logBudget(String testName, org.julclang.vm.EvalResult result) {
         var budget = result.budgetConsumed();
         System.out.println("[" + testName + "] CPU: " + budget.cpuSteps() + ", Mem: " + budget.memoryUnits());
         System.out.println("[" + testName + "] Traces: " + result.traces());
         System.out.println("[" + testName + "] Success: " + result.isSuccess());
-        if (result instanceof com.bloxbean.cardano.julc.vm.EvalResult.Failure f) {
+        if (result instanceof org.julclang.vm.EvalResult.Failure f) {
             System.out.println("[" + testName + "] Error: " + f.error());
         }
-        if (result instanceof com.bloxbean.cardano.julc.vm.EvalResult.Success s) {
+        if (result instanceof org.julclang.vm.EvalResult.Success s) {
             System.out.println("[" + testName + "] Result: " + s.resultTerm());
         }
     }

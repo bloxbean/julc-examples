@@ -3,11 +3,17 @@
 # Run CF template offchain demos.
 #
 # Usage:
-#   ./run-cfdemo.sh              # Run all demos sequentially
-#   ./run-cfdemo.sh escrow       # Run only the escrow demo
-#   ./run-cfdemo.sh --list       # List available demos
+#   ./run-cfdemo.sh                        # Run all demos sequentially
+#   ./run-cfdemo.sh escrow                 # Run only the escrow demo
+#   ./run-cfdemo.sh --list                 # List available demos
+#   ./run-cfdemo.sh --evaluator backend    # Evaluate scripts via Yaci Store's
+#                                          # /utils/txs/evaluate endpoint instead
+#                                          # of the in-process JuLC VM
 #
 # Requires Yaci DevKit running.
+#
+# Every demo's console output is also written to logs/cfdemo/<name>.log, so a
+# failure can be inspected after the run.
 #
 # When running all demos, failures are recorded and a summary is printed
 # at the end.  When running a single demo, the script exits immediately
@@ -16,6 +22,8 @@
 set -eu
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+LOG_DIR="$PROJECT_ROOT/logs/cfdemo"
+EVAL_ARG=""
 
 # name:fully.qualified.ClassName (sorted)
 DEMOS="
@@ -61,17 +69,40 @@ list_demos() {
 run_demo() {
   name="$1"
   main_class="$2"
+  log="$LOG_DIR/$name.log"
   echo ""
   echo "========================================="
   echo "  Running: $name"
   echo "  Class:   $main_class"
+  echo "  Log:     $log"
   echo "========================================="
   echo ""
   cd "$PROJECT_ROOT"
-  ./gradlew run -PmainClass="$main_class"
+  # Keep gradle's exit code (not tee's) while still capturing the output.
+  status_file=$(mktemp)
+  {
+    ./gradlew run -PmainClass="$main_class" $EVAL_ARG
+    echo $? > "$status_file"
+  } 2>&1 | tee "$log"
+  status=$(cat "$status_file")
+  rm -f "$status_file"
+  return "$status"
 }
 
 # -- Main --
+
+# --evaluator <local|backend> may precede the demo name.
+if [ $# -ge 1 ] && { [ "$1" = "--evaluator" ] || [ "$1" = "-e" ]; }; then
+  if [ $# -lt 2 ]; then
+    echo "Error: $1 requires a value (local or backend)"
+    exit 1
+  fi
+  EVAL_ARG="-Pevaluator=$2"
+  shift 2
+fi
+
+mkdir -p "$LOG_DIR"
+[ -n "$EVAL_ARG" ] && echo "Script evaluation: $EVAL_ARG"
 
 if [ $# -eq 0 ]; then
   # --- Run all demos ---
@@ -117,7 +148,7 @@ if [ $# -eq 0 ]; then
     echo ""
     echo "  Failed demos:"
     grep '^FAIL:' "$RESULTS_FILE" | while IFS=: read -r _ dname; do
-      echo "    - ${dname}"
+      echo "    - ${dname}  (log: logs/cfdemo/${dname}.log)"
     done
     echo ""
     exit 1

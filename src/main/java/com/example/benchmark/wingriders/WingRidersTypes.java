@@ -1,6 +1,6 @@
 package com.example.benchmark.wingriders;
 
-import com.bloxbean.cardano.julc.stdlib.annotation.OnchainLibrary;
+import org.julclang.stdlib.annotation.OnchainLibrary;
 
 /**
  * Shared constants for WingRiders benchmark.

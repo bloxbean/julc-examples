@@ -1,10 +1,10 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.stdlib.annotation.SpendingValidator;
-import com.bloxbean.cardano.julc.stdlib.annotation.Entrypoint;
-import com.bloxbean.cardano.julc.ledger.ScriptContext;
+import org.julclang.stdlib.annotation.SpendingValidator;
+import org.julclang.stdlib.annotation.Entrypoint;
+import org.julclang.ledger.ScriptContext;
 import com.example.mpf.MerklePatriciaForestry;
-import com.bloxbean.cardano.julc.core.types.JulcList;
+import org.julclang.core.types.JulcList;
 import com.example.mpf.ProofStep;
 
 /**

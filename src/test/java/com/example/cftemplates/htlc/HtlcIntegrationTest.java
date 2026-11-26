@@ -14,8 +14,8 @@ import com.bloxbean.cardano.client.plutus.spec.PlutusV3Script;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.quicktx.Tx;
-import com.bloxbean.cardano.julc.clientlib.JulcScriptLoader;
-import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
+import org.julclang.clientlib.JulcScriptLoader;
+import org.julclang.clientlib.PlutusDataAdapter;
 import com.example.cftemplates.htlc.onchain.CfHtlcValidator;
 import com.example.offchain.YaciHelper;
 import org.junit.jupiter.api.*;
@@ -114,7 +114,9 @@ class HtlcIntegrationTest {
                 .withSigner(SignerProviders.signerFrom(claimer))
                 .feePayer(claimer.baseAddress())
                 .collateralPayer(claimer.baseAddress())
-                .validTo(currentSlot + 200)
+                // Keep the upper bound inside the node's slot-to-time horizon: on DevKit's short epochs a
+                // bound 200 slots ahead is past it, and evaluation fails with PastHorizon before the script runs.
+                .validTo(currentSlot + 10)
                 .complete();
 
         assertTrue(result.isSuccessful(), "Unlock tx should succeed: " + result);

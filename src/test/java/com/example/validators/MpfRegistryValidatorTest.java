@@ -1,13 +1,13 @@
 package com.example.validators;
 
-import com.bloxbean.cardano.julc.clientlib.PlutusDataAdapter;
-import com.bloxbean.cardano.julc.core.PlutusData;
-import com.bloxbean.cardano.julc.core.types.JulcList;
-import com.bloxbean.cardano.julc.core.types.JulcMap;
-import com.bloxbean.cardano.julc.ledger.*;
-import com.bloxbean.cardano.julc.stdlib.lib.CryptoLib;
-import com.bloxbean.cardano.julc.testkit.*;
-import com.bloxbean.cardano.julc.vm.EvalResult;
+import org.julclang.clientlib.PlutusDataAdapter;
+import org.julclang.core.PlutusData;
+import org.julclang.core.types.JulcList;
+import org.julclang.core.types.JulcMap;
+import org.julclang.ledger.*;
+import org.julclang.stdlib.lib.CryptoLib;
+import org.julclang.testkit.*;
+import org.julclang.vm.EvalResult;
 import com.bloxbean.cardano.vds.mpf.MpfTrie;
 import com.bloxbean.cardano.vds.mpf.internal.TestNodeStore;
 import com.example.mpf.MerklePatriciaForestry;
@@ -489,6 +489,63 @@ class MpfRegistryValidatorTest extends ContractTest {
             var result = evaluate(program, ctx);
             assertFailure(result);
             logBudget("verifyMiss_keyExists_fails", result);
+        }
+    }
+
+    // ---- Forged exclusion proof ----
+
+    /**
+     * Trie {alice, bob}. The forged proof rebuilds alice's own leaf as the "neighbor"
+     * that remains after alice is removed, so a verifier without proof-shape checks
+     * would accept VerifyMiss for a key that is present.
+     */
+    @Nested
+    class ForgedMissProofTests {
+
+        final byte[] alice = "alice".getBytes();
+        final byte[] bob = "bob".getBytes();
+
+        byte[] trieRoot() {
+            var trie = new MpfTrie(new TestNodeStore());
+            trie.put(alice, "100".getBytes());
+            trie.put(bob, "200".getBytes());
+            return trie.getRootHash();
+        }
+
+        JulcList<ProofStep> forgedProof() {
+            return JulcList.of(
+                    new ProofStep.Leaf(0, CryptoLib.blake2b_256(bob), CryptoLib.blake2b_256("200".getBytes())),
+                    new ProofStep.Leaf(0, CryptoLib.blake2b_256(alice), CryptoLib.blake2b_256("100".getBytes())));
+        }
+
+        @Test
+        void verifyMiss_forgedProofForPresentKey_rejected_java() {
+            var datum = new MpfRegistryValidator.MpfDatum(trieRoot());
+            var redeemer = new MpfRegistryValidator.VerifyMiss(alice, forgedProof());
+            var ctx = new DirectJavaTests().buildCtx(new byte[][]{});
+            assertFalse(MpfRegistryValidator.validate(datum, redeemer, ctx));
+        }
+
+        @Test
+        void verifyMiss_forgedProofForPresentKey_rejected_uplc() throws Exception {
+            var program = compileValidator(MpfRegistryValidator.class).program();
+            var proofSteps = new java.util.ArrayList<PlutusData>();
+            for (ProofStep step : forgedProof()) {
+                var l = (ProofStep.Leaf) step;
+                proofSteps.add(PlutusData.constr(2, PlutusData.integer(l.skip()),
+                        PlutusData.bytes(l.key()), PlutusData.bytes(l.value())));
+            }
+            // VerifyMiss = Constr(1, [BData(key), ListData(proof)])
+            var redeemer = PlutusData.constr(1, PlutusData.bytes(alice),
+                    PlutusData.list(proofSteps.toArray(new PlutusData[0])));
+            var ctx = spendingContext(TestDataBuilder.randomTxOutRef_typed(),
+                    PlutusData.constr(0, PlutusData.bytes(trieRoot())))
+                    .redeemer(redeemer)
+                    .buildPlutusData();
+
+            var result = evaluate(program, ctx);
+            assertFailure(result);
+            logBudget("verifyMiss_forgedProofForPresentKey_rejected_uplc", result);
         }
     }
 

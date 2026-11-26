@@ -730,6 +730,11 @@ class MerklePatriciaForestryTest {
             assertFalse(wellFormedBoth(path, new ProofStep.Fork(0, new Neighbor(0, new byte[0], Arrays.copyOf(h32, 31)))));
             assertFalse(wellFormedBoth(path, new ProofStep.Fork(0, new Neighbor(0, new byte[0], Arrays.copyOf(h32, 33)))));
             assertFalse(wellFormedBoth(path, new ProofStep.Fork(64, new Neighbor(0, new byte[0], h32))));
+            // the neighbor prefix must end before nibble 64
+            assertTrue(wellFormedBoth(path, new ProofStep.Fork(0, new Neighbor(0, new byte[62], h32))));
+            assertFalse(wellFormedBoth(path, new ProofStep.Fork(0, new Neighbor(0, new byte[63], h32))));
+            assertTrue(wellFormedBoth(path, new ProofStep.Fork(1, new Neighbor(0, new byte[61], h32))));
+            assertFalse(wellFormedBoth(path, new ProofStep.Fork(1, new Neighbor(0, new byte[62], h32))));
         }
 
         @Test
@@ -774,6 +779,63 @@ class MerklePatriciaForestryTest {
                     new ProofStep.Branch(0, new byte[128]),
                     new ProofStep.Fork(0, new Neighbor(MerklePatriciaForestry.nibble(path, 1), new byte[0], h32)),
                     new ProofStep.Branch(0, new byte[128])));
+        }
+    }
+
+    /** isCanonicalExclusion() through the Java stubs and through compiled UPLC; both must agree. */
+    static boolean canonicalExclusionBoth(byte[] path, ProofStep... steps) {
+        var proof = JulcList.of(steps);
+        boolean java = MerklePatriciaForestry.isCanonicalExclusion(path, 0, proof);
+        boolean uplc = UPLC.call("isCanonicalExclusion", PlutusData.bytes(path), PlutusData.integer(0), toData(proof))
+                .asBoolean();
+        assertEquals(java, uplc, "Java and UPLC disagree on isCanonicalExclusion");
+        return java;
+    }
+
+    /** Last-step shape for exclusion proofs, on path H(alice) = e1..: the terminal step sits at cursor 1. */
+    @Nested
+    class ExclusionShapeTests {
+
+        final byte[] path = h("alice");
+        final byte[] h32 = hv();
+        final ProofStep first = new ProofStep.Leaf(0, withByte(path, 0, 0x01), h32);
+
+        @Test
+        void terminal_leaf_at_odd_cursor() {
+            byte[] key = new byte[32];
+            key[0] = (byte) 0xe2;                       // shares nibble 0, differs at nibble 1
+            for (int i = 1; i < 32; i++) key[i] = (byte) (i % 16);
+            assertTrue(wellFormedBoth(path, first, new ProofStep.Leaf(0, key, h32)));
+            assertFalse(canonicalExclusionBoth(path, first, new ProofStep.Leaf(0, key, h32)));
+            assertTrue(canonicalExclusionBoth(path, first, new ProofStep.Leaf(0, withByte(key, 31, 0x10), h32)));
+            assertTrue(canonicalExclusionBoth(path, first, new ProofStep.Leaf(0, withByte(key, 1, 0xff), h32)));
+        }
+
+        @Test
+        void terminal_leaf_at_even_cursor() {
+            byte[] key = new byte[32];
+            key[0] = 0x01;
+            assertTrue(canonicalExclusionBoth(path, new ProofStep.Leaf(0, key, h32)));
+            // a non-terminal step is not checked
+            assertTrue(canonicalExclusionBoth(path, first, new ProofStep.Leaf(0, withByte(key, 0, 0xe2), h32),
+                    new ProofStep.Branch(0, new byte[128])));
+        }
+
+        @Test
+        void terminal_fork_at_odd_cursor() {
+            // rebuilt prefix [0] ++ 32 bytes: 33 = 2 + (63 - 1) / 2
+            assertTrue(wellFormedBoth(path, first, new ProofStep.Fork(0, new Neighbor(0, new byte[32], h32))));
+            assertFalse(canonicalExclusionBoth(path, first, new ProofStep.Fork(0, new Neighbor(0, new byte[32], h32))));
+            assertTrue(canonicalExclusionBoth(path, first, new ProofStep.Fork(0, new Neighbor(0, new byte[31], h32))));
+            assertTrue(canonicalExclusionBoth(path, first, new ProofStep.Fork(0, new Neighbor(0, new byte[33], h32))));
+            assertTrue(canonicalExclusionBoth(path, first, new ProofStep.Fork(0, new Neighbor(2, new byte[32], h32))));
+            // with a skip the prefix starts with the path's nibble 1
+            assertTrue(canonicalExclusionBoth(path, first, new ProofStep.Fork(1, new Neighbor(0, new byte[31], h32))));
+        }
+
+        @Test
+        void terminal_fork_at_even_cursor() {
+            assertTrue(canonicalExclusionBoth(path, new ProofStep.Fork(0, new Neighbor(0, new byte[32], h32))));
         }
     }
 

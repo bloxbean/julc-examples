@@ -12,10 +12,13 @@ Before comparing roots, both call `isWellFormed`, which checks every proof step:
 
 - the step's branch nibble (`cursor + skip`) is within the 64-nibble path, and `skip >= 0`;
 - `Branch`: `neighbors` is 128 bytes;
-- `Fork`: the neighbor nibble is 0..15 and is not the path's nibble at the branch; every byte
-  of the neighbor prefix is 0..15; the neighbor root is 32 bytes;
+- `Fork`: the neighbor nibble is 0..15 and is not the path's nibble at the branch; the neighbor
+  prefix ends before nibble 64 and every byte of it is 0..15; the neighbor root is 32 bytes;
 - `Leaf`: `key` and `value` are 32 bytes; the key has the same nibbles as the path before the
   branch and a different nibble at the branch.
+
+`miss` also calls `isCanonicalExclusion`, which checks the shape of the last step at an odd
+cursor. An honest proof fails it only with negligible probability.
 
 A malformed proof makes `has`/`miss` return `false`. `including` and `excluding` compute
 roots without these checks, so do not compare their result to a root yourself; call `has`

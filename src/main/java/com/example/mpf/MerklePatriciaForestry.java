@@ -17,7 +17,8 @@ import java.util.List;
  * Translated from the Aiken merkle-patricia-forestry library.
  * <p>
  * {@link #has} and {@link #miss} check the shape of every proof step before comparing
- * roots (see {@link #isWellFormed}); a malformed proof makes them return false.
+ * roots (see {@link #isWellFormed}, and {@link #isCanonicalExclusion} for {@link #miss});
+ * a malformed proof makes them return false.
  * {@link #including} and {@link #excluding} do not check the shape.
  * <p>
  * Methods are ordered bottom-up (leaves first, entry methods last) so that
@@ -339,8 +340,9 @@ public class MerklePatriciaForestry {
      * skip s the step's branch is at nibble cursor + s, which must be below 64.
      * <ul>
      *   <li>Branch: neighbors is 128 bytes.</li>
-     *   <li>Fork: the neighbor nibble is 0..15 and differs from the path's nibble, every
-     *       prefix byte is a nibble, and the neighbor root is 32 bytes.</li>
+     *   <li>Fork: the neighbor nibble is 0..15 and differs from the path's nibble, the
+     *       neighbor prefix ends before nibble 64 and every prefix byte is a nibble, and the
+     *       neighbor root is 32 bytes.</li>
      *   <li>Leaf: key and value are 32 bytes, and the key shares the path's nibbles up to
      *       the branch and differs from it there.</li>
      * </ul>
@@ -365,6 +367,7 @@ public class MerklePatriciaForestry {
                 return skip >= 0 && skip < 64 - cursor
                         && n >= 0 && n <= 15
                         && n != nibble(path, at)
+                        && at + 1 + ByteStringLib.length(neighbor.prefix()) < 64
                         && allNibbles(neighbor.prefix(), 0)
                         && ByteStringLib.length(neighbor.root()) == 32
                         && isWellFormed(path, at + 1, steps);
@@ -378,6 +381,43 @@ public class MerklePatriciaForestry {
                         && ByteStringLib.length(l.value()) == 32
                         && forksAt(key, path, at)
                         && isWellFormed(path, at + 1, steps);
+            }
+        }
+    }
+
+    /**
+     * Extra check for exclusion proofs, on the last step only. At an odd cursor:
+     * <ul>
+     *   <li>a terminal Leaf key has a byte above 15 from index (cursor + 1) / 2 on;</li>
+     *   <li>the node a terminal Fork rebuilds does not have a prefix that starts with
+     *       nibble 0 and is 2 + (63 - cursor) / 2 bytes long.</li>
+     * </ul>
+     * Assumes the proof passed {@link #isWellFormed}. Returns false and never fails.
+     */
+    public static boolean isCanonicalExclusion(byte[] path, int cursor, JulcList<ProofStep> proof) {
+        if (proof.isEmpty()) {
+            return true;
+        } else {
+            ProofStep step = proof.head();
+            JulcList<ProofStep> steps = proof.tail();
+            if (step instanceof ProofStep.Branch b) {
+                return isCanonicalExclusion(path, cursor + b.skip() + 1, steps);
+            } else if (step instanceof ProofStep.Fork f) {
+                if (steps.isEmpty()) {
+                    int skip = f.skip();
+                    int first = (skip == 0) ? f.neighbor().nibble() : nibble(path, cursor);
+                    long length = skip + 1 + ByteStringLib.length(f.neighbor().prefix());
+                    return cursor % 2 == 0 || first != 0 || length != 2 + (63 - cursor) / 2;
+                } else {
+                    return isCanonicalExclusion(path, cursor + f.skip() + 1, steps);
+                }
+            } else {
+                ProofStep.Leaf l = (ProofStep.Leaf) step;
+                if (steps.isEmpty()) {
+                    return cursor % 2 == 0 || !allNibbles(l.key(), (cursor + 1) / 2);
+                } else {
+                    return isCanonicalExclusion(path, cursor + l.skip() + 1, steps);
+                }
             }
         }
     }
@@ -414,6 +454,7 @@ public class MerklePatriciaForestry {
     public static boolean miss(byte[] trieRoot, byte[] key, JulcList<ProofStep> proof) {
         byte[] path = CryptoLib.blake2b_256(key);
         return isWellFormed(path, 0, proof)
+                && isCanonicalExclusion(path, 0, proof)
                 && ByteStringLib.equals(doExcluding(path, 0, proof), trieRoot);
     }
 }
